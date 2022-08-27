@@ -1,0 +1,8 @@
+--cpp bin
+--class-path src
+--main Main
+
+--debug
+
+--library haxe-delegates
+--library hxcpp-debug-server
