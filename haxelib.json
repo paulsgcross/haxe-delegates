@@ -1,0 +1,14 @@
+{
+   "name": "haxe-delegates",
+   "url": "https://github.com/thispolo/haxe-delegates",
+   "license": "MIT",
+   "classPath": "src/",
+   "tags": [
+      "utility", "cross", "delegates", "function-types", "delegate"
+   ],
+   "description": "Small utility for Haxe that wraps function types as delegate objects. Enforces type-strictness and is faster on some targets.",
+   "contributors": ["PaulSGCross"],
+   "releasenote": "Initial release",
+   "version": "0.0.0",
+   "dependencies": { }
+}
