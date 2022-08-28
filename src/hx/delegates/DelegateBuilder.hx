@@ -208,6 +208,11 @@ final class DelegateBuilder {
             case EWhile(econd, e, norm):
                 searchUnknowns(econd.expr, unknowns);
                 searchUnknowns(e.expr, unknowns);
+            case ECall(e, params):
+                searchUnknowns(e.expr, unknowns);
+                for(param in params) {
+                    searchUnknowns(param.expr, unknowns);
+                }
             case ETry(e, catches):
                 searchUnknowns(e.expr, unknowns);
                 for(c in catches) {

@@ -9,10 +9,16 @@ class Test {
 
     public function new() {
         var x = new Ref(1);
-        var y : Delegate<Void -> Int> = DelegateBuilder.from(()->(return x.value));
-        x.value = 2;
-        var z = y.call();
-        trace(z);
+        
+        var v : Delegate<Void-> Void> = DelegateBuilder.from(function() {
+            trace('hello');
+        });
+
+        var d : Delegate<Void -> Void> = DelegateBuilder.from(function() {
+            v.call();
+        });
+
+        d.call();
     }
 
     public function runNoninlined() {
