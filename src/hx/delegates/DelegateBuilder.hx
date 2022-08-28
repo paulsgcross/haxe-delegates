@@ -123,8 +123,6 @@ final class DelegateBuilder {
         searchUnknowns(def, unknowns);
 
         var vs = Context.getLocalTVars();
-        trace(vs);
-
         inputs.push('this');
         if(unknowns.length > 0) {
             var newargs = [{name: 'parent'}];
@@ -190,6 +188,8 @@ final class DelegateBuilder {
             case EBinop(op, e1, e2):
                 searchUnknowns(e1.expr, unknowns);
                 searchUnknowns(e2.expr, unknowns);
+            case EField(e, field):
+                searchUnknowns(e.expr, unknowns);
             case EConst(CIdent(s)):
                 unknowns.push(s);
             default:
