@@ -1,6 +1,7 @@
 import haxe.Timer;
 import hx.delegates.Delegate;
 import hx.delegates.DelegateBuilder;
+import hx.delegates.Capture;
 
 class Test {
 
@@ -8,8 +9,13 @@ class Test {
     private var testFunc : (Int, Int) -> Int;
     private var testDelegate : Delegate<(Int, Int) -> Int>;
 
+    private var testDelegate2 : Delegate<Int -> Int>;
+
     public function new() {
-        outer = 5;
+        Capture.of(var x = 5);
+        Capture.of(var v = 5);
+        testDelegate2 = DelegateBuilder.from((c)->(return c + x + v));
+        trace(testDelegate2.call(9));
     }
 
     public function runNoninlined() {

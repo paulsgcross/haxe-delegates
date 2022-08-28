@@ -29,7 +29,7 @@ final class DelegateBuilder {
     }
 
     #if macro
-    private static function createFunction(ident : String, inner : (String, Array<Field>, Position) -> Void, pos : Position) : Expr {
+    private static function createFunction(ident : String, inner : (String, Array<Field>, Position) -> Array<String>, pos : Position) : Expr {
         var module = Context.getLocalModule();
         var type = Context.getExpectedType();
         var expectedPack = [];
@@ -42,7 +42,7 @@ final class DelegateBuilder {
         }
         
         var fields : Array<Field> = [];
-        inner(ident, fields, pos);
+        var inputs = inner(ident, fields, pos);
 
         var pack = module.toLowerCase().split('.');
         pack.insert(0, 'delegates');
@@ -59,12 +59,18 @@ final class DelegateBuilder {
                 fields: fields
             });
         }
-        return {expr: ENew({pack: pack, name : name}, [macro{this;}]),
+
+        var params = [];
+        for(s in inputs) {
+            params.push({expr: EConst(CIdent(s)), pos: pos});
+        }
+
+        return {expr: ENew({pack: pack, name : name}, params),
                 pos: pos
             };
     }
 
-    private static function handleIdentExpression(ident : String, fields : Array<Field>, pos : Position) {
+    private static function handleIdentExpression(ident : String, fields : Array<Field>, pos : Position) : Array<String> {
         var localClass = Context.getLocalClass().get();
         var classFields = localClass.fields.get();
         var field = localClass.findField(ident);
@@ -72,10 +78,21 @@ final class DelegateBuilder {
             var typedExpr = Context.getTypedExpr(field.expr());
             createField(ident, typedExpr, fields, pos, createInnerExpression);
         }
+        return ['this'];
     }
     
     private static function handleInlineExpression(ident : String, expr : Expr, fields : Array<Field>, pos : Position) {
-        createField(ident, expr, fields, pos, createFunctionExpression);
+        var method = Context.getLocalMethod();
+        var localclass = Context.getLocalClass().get().name;
+        var localpack = Context.getLocalClass().get().pack;
+
+        var callLoc = localpack.length > 0
+            ? '${localpack.join('.')}.${localclass}.${method}'
+            : '${localclass}.${method}';
+
+        var inputs = [];
+        createField(ident, expr, fields, pos, createFunctionExpression.bind(_, _, _, _, _, callLoc, _, inputs));
+        return inputs;
     }
 
     private static function convertToEField(path : String) : Expr {
@@ -105,10 +122,101 @@ final class DelegateBuilder {
         }
     }
 
-    private static function createFunctionExpression(name : String, expr : Expr, args : Array<FunctionArg>, ret : Null<ComplexType>, fields : Array<Field>, pos : Position) : Expr {
+    private static function createFunctionExpression(name : String, expr : Expr, args : Array<FunctionArg>, ret : Null<ComplexType>, fields : Array<Field>, loc: String, pos : Position, inputs : Array<String>) : Expr {
+        var def = expr.expr;
+        if(def == null)
+            return expr;
+
+        var unknowns = [];
+        searchUnknowns(def, unknowns);
+
+        var capture = Capture.captures.get(loc);
+
+        inputs.push('this');
+        if(unknowns.length > 0) {
+            var newargs = [{name: 'parent'}];
+            for (unknown in unknowns) {
+                if(!capture.exists(unknown))
+                    continue;
+
+                newargs.push({
+                    name: unknown
+                });
+
+                fields.push({
+                    name: unknown,
+                        access: [APrivate],
+                        kind: FVar(inferType(capture.get(unknown)), null),
+                    pos: pos
+                });
+                
+                inputs.push(unknown);
+            }
+
+            var exprs : Array<Expr> = [];
+            for(input in inputs) {
+                if(input == 'this')
+                    continue;
+
+                var expr = macro {
+                    $p{['this', input]} = $i{input}
+                };
+                exprs.push(expr);
+            }
+
+            fields.push({
+                name: 'new',
+                    access: [APublic],
+                    kind: FFun({
+                        args: newargs,
+                        expr: macro {
+                            super(_parent);
+                            $b{exprs};
+                        }
+                    }),
+                pos: pos
+            });
+        }
+
         return expr;
     }
     
+    private static function searchUnknowns(def : ExprDef, unknowns : Array<String>) : Void {
+        switch(def) {
+            case EParenthesis(e):
+                searchUnknowns(e.expr, unknowns);
+            case EMeta(s, e):
+                searchUnknowns(e.expr, unknowns);
+            case EBlock(e):
+                for(es in e) {
+                    searchUnknowns(es.expr, unknowns);
+                }
+            case EReturn(e):
+                searchUnknowns(e.expr, unknowns);
+            case EBinop(op, e1, e2):
+                searchUnknowns(e1.expr, unknowns);
+                searchUnknowns(e2.expr, unknowns);
+            case EConst(CIdent(s)):
+                unknowns.push(s);
+            default:
+        }
+    }
+
+    private static function inferType(v : Var) : ComplexType {
+        if(v.type == null) {
+            switch(v.expr.expr) {
+                case EConst(CInt(_)):
+                    return TPath({name: 'Int', pack: []});
+                case EConst(CFloat(_)):
+                    return TPath({name: 'Float', pack: []});
+                case EConst(CString(_)):
+                    return TPath({name: 'String', pack: []});
+                default:
+                    return TPath({name: 'Dynamic', pack: []});
+            }
+        } else return v.type;
+    }
+
     private static function createInnerExpression(name : String, expr : Expr, args : Array<FunctionArg>, ret : Null<ComplexType>, fields : Array<Field>, pos : Position) : Expr {
         var ident = createExpression(EConst(CIdent('_parent')));
         var field = createExpression(EField(ident, name));

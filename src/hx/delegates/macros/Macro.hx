@@ -90,7 +90,6 @@ final class Macro {
             pos: pos
         });
         
-        trace(types);
         fields.push({
             name: 'call',
             access: [APublic, AAbstract],
