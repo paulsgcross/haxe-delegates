@@ -192,6 +192,27 @@ final class DelegateBuilder {
                 searchUnknowns(e.expr, unknowns);
             case EConst(CIdent(s)):
                 unknowns.push(s);
+            case EArray(e1, e2):
+                searchUnknowns(e1.expr, unknowns);
+                searchUnknowns(e2.expr, unknowns);
+            case EArrayDecl(values):
+                for(value in values)
+                    searchUnknowns(value.expr, unknowns);
+            case EIf(econd, eif, eelse):
+                searchUnknowns(econd.expr, unknowns);
+                searchUnknowns(eif.expr, unknowns);
+                if(eelse != null) searchUnknowns(eelse.expr, unknowns);
+            case EFor(it, e):
+                searchUnknowns(it.expr, unknowns);
+                searchUnknowns(e.expr, unknowns);
+            case EWhile(econd, e, norm):
+                searchUnknowns(econd.expr, unknowns);
+                searchUnknowns(e.expr, unknowns);
+            case ETry(e, catches):
+                searchUnknowns(e.expr, unknowns);
+                for(c in catches) {
+                    searchUnknowns(c.expr.expr, unknowns);
+                }
             default:
         }
     }
