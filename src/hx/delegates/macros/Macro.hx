@@ -34,8 +34,12 @@ final class Macro {
             switch(type) {
                 case TAbstract(t, params):
                     names.push(t.toString());
+                    for(param in params)
+                        names.push(param.toString());
                 case TInst(t, params):
                     names.push(t.get().name);
+                    for(param in params)
+                        names.push(param.toString());
                 default:
             }
         }

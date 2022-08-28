@@ -8,17 +8,7 @@ class Test {
     private var testDelegate : Delegate<(Int, Int) -> Int>;
 
     public function new() {
-        var x = new Ref(1);
-        
-        var v : Delegate<Void-> Void> = DelegateBuilder.from(function() {
-            trace('hello');
-        });
-
-        var d : Delegate<Void -> Void> = DelegateBuilder.from(function() {
-            v.call();
-        });
-
-        d.call();
+        outer = 5;
     }
 
     public function runNoninlined() {
@@ -44,18 +34,18 @@ class Test {
     }
 
     public function doTest() {
-        var N = 1000000;
+        var N = 10000000;
         var t = Timer.stamp();
         for(i in 0...N) {
             testFunc(i, i);
         }
-        trace(Timer.stamp() - t);
+        trace('Function type: ' + (Timer.stamp() - t));
 
         var t = Timer.stamp();
         for(i in 0...N) {
             testDelegate.call(i, i);
         }
-        trace(Timer.stamp() - t);
+        trace('Delegate: ' + (Timer.stamp() - t));
 
     }
 }

@@ -40,7 +40,7 @@ final class DelegateBuilder {
                 expectedName = t.get().name;
             default:
         }
-        
+
         var fields : Array<Field> = [];
         var inputs = inner(ident, fields, pos);
 
