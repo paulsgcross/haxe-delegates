@@ -82,16 +82,8 @@ final class DelegateBuilder {
     }
     
     private static function handleInlineExpression(ident : String, expr : Expr, fields : Array<Field>, pos : Position) {
-        var method = Context.getLocalMethod();
-        var localclass = Context.getLocalClass().get().name;
-        var localpack = Context.getLocalClass().get().pack;
-
-        var callLoc = localpack.length > 0
-            ? '${localpack.join('.')}.${localclass}.${method}'
-            : '${localclass}.${method}';
-
         var inputs = [];
-        createField(ident, expr, fields, pos, createFunctionExpression.bind(_, _, _, _, _, callLoc, _, inputs));
+        createField(ident, expr, fields, pos, createFunctionExpression.bind(_, _, _, _, _, _, inputs));
         return inputs;
     }
 
@@ -122,7 +114,7 @@ final class DelegateBuilder {
         }
     }
 
-    private static function createFunctionExpression(name : String, expr : Expr, args : Array<FunctionArg>, ret : Null<ComplexType>, fields : Array<Field>, loc: String, pos : Position, inputs : Array<String>) : Expr {
+    private static function createFunctionExpression(name : String, expr : Expr, args : Array<FunctionArg>, ret : Null<ComplexType>, fields : Array<Field>, pos : Position, inputs : Array<String>) : Expr {
         var def = expr.expr;
         if(def == null)
             return expr;
@@ -130,13 +122,15 @@ final class DelegateBuilder {
         var unknowns = [];
         searchUnknowns(def, unknowns);
 
-        var capture = Capture.captures.get(loc);
+        var vs = Context.getLocalTVars();
+        trace(vs);
 
         inputs.push('this');
         if(unknowns.length > 0) {
             var newargs = [{name: 'parent'}];
             for (unknown in unknowns) {
-                if(!capture.exists(unknown))
+                var v = vs.get(unknown);
+                if(v == null)
                     continue;
 
                 newargs.push({
@@ -146,7 +140,7 @@ final class DelegateBuilder {
                 fields.push({
                     name: unknown,
                         access: [APrivate],
-                        kind: FVar(inferType(capture.get(unknown)), null),
+                        kind: FVar(v.t.toComplexType(), null),
                     pos: pos
                 });
                 
@@ -201,22 +195,7 @@ final class DelegateBuilder {
             default:
         }
     }
-
-    private static function inferType(v : Var) : ComplexType {
-        if(v.type == null) {
-            switch(v.expr.expr) {
-                case EConst(CInt(_)):
-                    return TPath({name: 'Int', pack: []});
-                case EConst(CFloat(_)):
-                    return TPath({name: 'Float', pack: []});
-                case EConst(CString(_)):
-                    return TPath({name: 'String', pack: []});
-                default:
-                    return TPath({name: 'Dynamic', pack: []});
-            }
-        } else return v.type;
-    }
-
+    
     private static function createInnerExpression(name : String, expr : Expr, args : Array<FunctionArg>, ret : Null<ComplexType>, fields : Array<Field>, pos : Position) : Expr {
         var ident = createExpression(EConst(CIdent('_parent')));
         var field = createExpression(EField(ident, name));
