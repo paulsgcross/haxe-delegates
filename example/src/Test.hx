@@ -9,34 +9,28 @@ class Test {
     private var testFunc : (Int, Int) -> Int;
     private var testDelegate : Delegate<(Int, Int) -> Int>;
 
-    private var testDelegate1 : Delegate<Int->Int>;
-    private var testDelegate2 : Delegate<Delegate<Int->Int> -> Void>;
-
     public function new() {
         outer = 5;
-        
-        testDelegate1 = DelegateBuilder.from(function(i) {
-            return 5*i;
-        });
-
-        testDelegate2 = DelegateBuilder.from(function(d : Delegate<Int->Int>) {
-            trace(d.call(2));
-        });
-
-        testDelegate2.call(testDelegate1);
     }
 
     public function runNoninlined() {
         trace('*** Running without inlines ***');
         testFunc = myFunction;
-        //testDelegate = DelegateBuilder.from(myFunction);
+        testDelegate = DelegateBuilder.from(myFunction);
         doTest();
     }
 
     public function runInlined() {
         trace('*** Running with inlines ***');
         testFunc = myInlinedFunction;
-        //testDelegate = DelegateBuilder.from(myInlinedFunction);
+        testDelegate = DelegateBuilder.from(myInlinedFunction);
+        doTest();
+    }
+
+    public function runAnon() {
+        trace('*** Running with anonymous functions ***');
+        testFunc = (a, b) -> (return a+b+outer);
+        testDelegate = DelegateBuilder.from((a, b) -> (return a+b+outer));
         doTest();
     }
 
@@ -58,7 +52,7 @@ class Test {
 
         var t = Timer.stamp();
         for(i in 0...N) {
-            //testDelegate.call(i, i);
+            testDelegate.call(i, i);
         }
         trace('Delegate: ' + (Timer.stamp() - t));
 

@@ -3,5 +3,6 @@ class Main {
         var test = new Test();
         test.runNoninlined();
         test.runInlined();
+        test.runAnon();
     }
 }
