@@ -224,6 +224,12 @@ final class DelegateBuilder {
                 for(c in catches) {
                     searchUnknowns(c.expr.expr, unknowns);
                 }
+            case EThrow(e):
+                searchUnknowns(e.expr, unknowns);
+            case ETernary(econd, eif, eelse):
+                searchUnknowns(econd.expr, unknowns);
+                searchUnknowns(eif.expr, unknowns);
+                searchUnknowns(eelse.expr, unknowns);
             default:
         }
     }

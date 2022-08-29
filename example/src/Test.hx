@@ -11,8 +11,7 @@ class Test {
     public function new() {
         outer = 5;
 
-        var t = 4;
-        testDelegate1 = DelegateBuilder.from(()->(return(t)));
+        testDelegate1 = DelegateBuilder.from(()->(return(outer)));
     }
 
     public function runNoninlined() {
