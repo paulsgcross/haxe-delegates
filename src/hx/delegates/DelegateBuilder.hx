@@ -8,6 +8,8 @@ import haxe.macro.Expr.Position;
 using haxe.macro.ExprTools;
 using haxe.macro.TypeTools;
 using haxe.macro.ComplexTypeTools;
+
+using StringTools;
 #end
 
 final class DelegateBuilder {
@@ -42,7 +44,7 @@ final class DelegateBuilder {
         switch(type) {
             case TInst(t, params):
                 expectedPack = t.get().pack;
-                expectedName = t.get().name;
+                expectedName = t.get().name.replace('.', '');
             default:
         }
 

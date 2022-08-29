@@ -1,8 +1,8 @@
 import haxe.Timer;
-import hx.delegates.Ref;
 import hx.delegates.Delegate;
 import hx.delegates.DelegateBuilder;
 
+// Fails on imported types...
 class Test {
 
     private var outer : Int;
@@ -16,11 +16,11 @@ class Test {
         outer = 5;
         
         testDelegate1 = DelegateBuilder.from(function(i) {
-            return i;
+            return 5*i;
         });
 
-        testDelegate2 = DelegateBuilder.from(function(d : hx.delegates.Delegate<Int->Int>) {
-            trace(d.call(4));
+        testDelegate2 = DelegateBuilder.from(function(d : Delegate<Int->Int>) {
+            trace(d.call(2));
         });
 
         testDelegate2.call(testDelegate1);

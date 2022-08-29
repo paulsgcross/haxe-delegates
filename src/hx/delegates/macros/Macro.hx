@@ -9,6 +9,8 @@ import haxe.macro.Expr.ComplexType;
 using haxe.macro.TypeTools;
 using haxe.macro.ComplexTypeTools;
 
+using StringTools;
+
 final class Macro {
 
     private static var _delegateCount : Int = 0;
@@ -33,13 +35,13 @@ final class Macro {
         for(type in types) {
             switch(type) {
                 case TAbstract(t, params):
-                    names.push(t.toString());
+                    names.push(t.toString().replace('.', ''));
                     for(param in params)
-                        names.push(param.toString());
+                        names.push(param.toString().replace('.', ''));
                 case TInst(t, params):
-                    names.push(t.get().name);
+                    names.push(t.get().name.replace('.', ''));
                     for(param in params)
-                        names.push(param.toString());
+                        names.push(param.toString().replace('.', ''));
                 default:
             }
         }
