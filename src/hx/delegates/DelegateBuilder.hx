@@ -8,6 +8,8 @@ import haxe.macro.Expr.Position;
 using haxe.macro.ExprTools;
 using haxe.macro.TypeTools;
 using haxe.macro.ComplexTypeTools;
+
+using StringTools;
 #end
 
 final class DelegateBuilder {
@@ -17,11 +19,16 @@ final class DelegateBuilder {
     public static macro function from(expr : Expr) : Expr {
         var pos = Context.currentPos();
         var exprdef = expr.expr;
+        var fields = [];
+        var inputs = [];
         switch(exprdef) {
             case EFunction(kind, f):
-                return createFunction('inline${_delegateCount++}', handleInlineExpression.bind(_, expr, _, _), pos);
+                var name = 'inline${_delegateCount++}';
+                var inputs = handleInlineExpression(name, expr, fields, pos);
+                return createType(name, fields, inputs, pos);
             case EConst(CIdent(s)):
-                return createFunction(s, handleIdentExpression, pos);
+                var inputs = handleIdentExpression(s, fields, pos);
+                return createType(s, fields, inputs, pos);
             default:
                 Context.error('Incorrect function type', pos);
         }
@@ -29,7 +36,7 @@ final class DelegateBuilder {
     }
 
     #if macro
-    private static function createFunction(ident : String, inner : (String, Array<Field>, Position) -> Void, pos : Position) : Expr {
+    private static function createType(ident : String, fields : Array<Field>, inputs : Array<String>, pos : Position) : Expr {
         var module = Context.getLocalModule();
         var type = Context.getExpectedType();
         var expectedPack = [];
@@ -37,12 +44,9 @@ final class DelegateBuilder {
         switch(type) {
             case TInst(t, params):
                 expectedPack = t.get().pack;
-                expectedName = t.get().name;
+                expectedName = t.get().name.replace('.', '');
             default:
         }
-        
-        var fields : Array<Field> = [];
-        inner(ident, fields, pos);
 
         var pack = module.toLowerCase().split('.');
         pack.insert(0, 'delegates');
@@ -59,23 +63,30 @@ final class DelegateBuilder {
                 fields: fields
             });
         }
-        return {expr: ENew({pack: pack, name : name}, [macro{this;}]),
+
+        var params = [];
+        for(s in inputs) {
+            params.push({expr: EConst(CIdent(s)), pos: pos});
+        }
+
+        return {expr: ENew({pack: pack, name : name}, params),
                 pos: pos
             };
     }
 
-    private static function handleIdentExpression(ident : String, fields : Array<Field>, pos : Position) {
+    private static function handleIdentExpression(ident : String, fields : Array<Field>, pos : Position) : Array<String> {
         var localClass = Context.getLocalClass().get();
         var classFields = localClass.fields.get();
         var field = localClass.findField(ident);
         if(field != null) {
             var typedExpr = Context.getTypedExpr(field.expr());
-            createField(ident, typedExpr, fields, pos, createInnerExpression);
+            return createField(ident, typedExpr, fields, createInnerExpression, pos);
         }
+        return [];
     }
     
-    private static function handleInlineExpression(ident : String, expr : Expr, fields : Array<Field>, pos : Position) {
-        createField(ident, expr, fields, pos, createFunctionExpression);
+    private static function handleInlineExpression(ident : String, expr : Expr, fields : Array<Field>, pos : Position) : Array<String> {
+        return createField(ident, expr, fields, createFunctionExpression, pos);
     }
 
     private static function convertToEField(path : String) : Expr {
@@ -87,7 +98,8 @@ final class DelegateBuilder {
         return current;
     }
 
-    private static function createField(name : String, expr : Expr, fields : Array<Field>, pos : Position, inner : BuildType) : Void {
+    private static function createField(name : String, expr : Expr, fields : Array<Field>, inner : BuildType, pos : Position) : Array<String> {
+        var inputs = [];
         switch(expr.expr) {
             case EFunction(kind, f):
                 fields.push({
@@ -95,7 +107,7 @@ final class DelegateBuilder {
                     access: [APublic],
                     kind: FFun({
                         args: f.args,
-                        expr: inner(name, f.expr, f.args, f.ret, fields, pos),
+                        expr: inner(name, f.expr, f.args, f.ret, fields, inputs, pos),
                         ret: f.ret
                     }),
                     pos: pos,
@@ -103,16 +115,150 @@ final class DelegateBuilder {
                 });
             default:
         }
+        return inputs;
     }
 
-    private static function createFunctionExpression(name : String, expr : Expr, args : Array<FunctionArg>, ret : Null<ComplexType>, fields : Array<Field>, pos : Position) : Expr {
+    private static function createFunctionExpression(name : String, expr : Expr, args : Array<FunctionArg>, ret : Null<ComplexType>, fields : Array<Field>, inputs : Array<String>, pos : Position) : Expr {
+        var def = expr.expr;
+        if(def == null)
+            return expr;
+
+        var unknowns = [];
+        searchUnknowns(def, args, unknowns);
+
+        var vs = Context.getLocalTVars();
+        inputs.push('this');
+        if(unknowns.length > 0) {
+            var newargs = [{name: 'parent'}];
+            for (unknown in unknowns) {
+                var type = null;
+                var v = vs.get(unknown);
+                if(v == null) {
+                    type = checkClassVar(unknown);
+                } else {
+                    type = v.t;
+                }
+
+                newargs.push({
+                    name: unknown
+                });
+
+                fields.push({
+                    name: unknown,
+                        access: [APrivate],
+                        kind: FVar(type.toComplexType(), null),
+                    pos: pos
+                });
+
+                inputs.push(unknown);
+            }
+
+            if(inputs.length <= 1)
+                return expr;
+
+            var exprs : Array<Expr> = [];
+            for(input in inputs) {
+                if(input == 'this')
+                    continue;
+
+                var expr = macro {
+                    $p{['this', input]} = $i{input}
+                };
+                exprs.push(expr);
+            }
+
+            fields.push({
+                name: 'new',
+                    access: [APublic],
+                    kind: FFun({
+                        args: newargs,
+                        expr: macro {
+                            super(_parent);
+                            $b{exprs};
+                        }
+                    }),
+                pos: pos
+            });
+        }
+
         return expr;
     }
     
-    private static function createInnerExpression(name : String, expr : Expr, args : Array<FunctionArg>, ret : Null<ComplexType>, fields : Array<Field>, pos : Position) : Expr {
+    private static function searchUnknowns(def : ExprDef, args : Array<FunctionArg>, unknowns : Array<String>) : Void {
+        var search = searchUnknowns.bind(_, args, unknowns);
+        switch(def) {
+            case EParenthesis(e):
+                search(e.expr);
+            case EMeta(s, e):
+                search(e.expr);
+            case EBlock(e):
+                for(es in e) {
+                    search(es.expr);
+                }
+            case EReturn(e):
+                search(e.expr);
+            case EBinop(op, e1, e2):
+                search(e1.expr);
+                search(e2.expr);
+            case EField(e, field):
+                search(e.expr);
+            case EConst(CIdent(s)):
+                if(s == 'trace')
+                    return;
+
+                for(arg in args)
+                    if(arg.name == s) return;
+
+                unknowns.push(s);
+            case EArray(e1, e2):
+                search(e1.expr);
+                search(e2.expr);
+            case EArrayDecl(values):
+                for(value in values)
+                    search(value.expr);
+            case EIf(econd, eif, eelse):
+                search(econd.expr);
+                search(eif.expr);
+                if(eelse != null) search(eelse.expr);
+            case EFor(it, e):
+                search(it.expr);
+                search(e.expr);
+            case EWhile(econd, e, norm):
+                search(econd.expr);
+                search(e.expr);
+            case ECall(e, params):
+                search(e.expr);
+                for(param in params) {
+                    search(param.expr);
+                }
+            case ETry(e, catches):
+                search(e.expr);
+                for(c in catches) {
+                    search(c.expr.expr);
+                }
+            case EThrow(e):
+                search(e.expr);
+            case ETernary(econd, eif, eelse):
+                search(econd.expr);
+                search(eif.expr);
+                search(eelse.expr);
+            default:
+        }
+    }
+    
+    private static function checkClassVar(name : String) : haxe.macro.Type {
+        var field = Context.getLocalClass().get().findField(name);
+        if(field != null) {
+            return field.type;
+        }
+        return null;
+    }
+    
+    private static function createInnerExpression(name : String, expr : Expr, args : Array<FunctionArg>, ret : Null<ComplexType>, fields : Array<Field>, inputs : Array<String>, pos : Position) : Expr {
         var ident = createExpression(EConst(CIdent('_parent')));
         var field = createExpression(EField(ident, name));
         var inner = createExpression(ECall(field, [for(arg in args) createExpression(EConst(CIdent(arg.name)))]));
+        inputs.push('this');
         if(ret == null)
             return inner;
         else return createExpression(EReturn(inner));
@@ -125,5 +271,5 @@ final class DelegateBuilder {
 }
 
 #if macro
-typedef BuildType = (String, Expr, Array<FunctionArg>, Null<ComplexType>, Array<Field>, pos : Position) -> Expr;
+typedef BuildType = (String, Expr, Array<FunctionArg>, Null<ComplexType>, Array<Field>, Array<String>, pos : Position) -> Expr;
 #end

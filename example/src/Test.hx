@@ -2,6 +2,7 @@ import haxe.Timer;
 import hx.delegates.Delegate;
 import hx.delegates.DelegateBuilder;
 
+// Fails on imported types...
 class Test {
 
     private var outer : Int;
@@ -26,6 +27,15 @@ class Test {
         doTest();
     }
 
+    public function runAnon() {
+        trace('*** Running with anonymous functions ***');
+
+        var v = 3;
+        testFunc = (a, b) -> (return a+b+outer+v);
+        testDelegate = DelegateBuilder.from((a, b) -> (return a+b+outer+v));
+        doTest();
+    }
+
     public function myFunction(a : Int, b : Int) : Int {
         return a + b + outer;
     }
@@ -35,18 +45,18 @@ class Test {
     }
 
     public function doTest() {
-        var N = 1000000;
+        var N = 10000000;
         var t = Timer.stamp();
         for(i in 0...N) {
             testFunc(i, i);
         }
-        trace(Timer.stamp() - t);
+        trace('Haxe function type: ' + (Timer.stamp() - t));
 
         var t = Timer.stamp();
         for(i in 0...N) {
             testDelegate.call(i, i);
         }
-        trace(Timer.stamp() - t);
+        trace('Delegate: ' + (Timer.stamp() - t));
 
     }
 }
