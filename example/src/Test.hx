@@ -48,7 +48,7 @@ class Test {
         for(i in 0...N) {
             testFunc(i, i);
         }
-        trace('Function type: ' + (Timer.stamp() - t));
+        trace('Haxe function type: ' + (Timer.stamp() - t));
 
         var t = Timer.stamp();
         for(i in 0...N) {
