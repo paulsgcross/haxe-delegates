@@ -6,9 +6,13 @@ class Test {
     private var outer : Int;
     private var testFunc : (Int, Int) -> Int;
     private var testDelegate : Delegate<(Int, Int) -> Int>;
+    private var testDelegate1 : Delegate<Void -> Int>;
 
     public function new() {
         outer = 5;
+
+        var t = 4;
+        testDelegate1 = DelegateBuilder.from(()->(return(t)));
     }
 
     public function runNoninlined() {

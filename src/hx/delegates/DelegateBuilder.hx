@@ -129,9 +129,13 @@ final class DelegateBuilder {
         if(unknowns.length > 0) {
             var newargs = [{name: 'parent'}];
             for (unknown in unknowns) {
+                var type = null;
                 var v = vs.get(unknown);
-                if(v == null)
-                    continue;
+                if(v == null) {
+                    type = checkClassVar(unknown);
+                } else {
+                    type = v.t;
+                }
 
                 newargs.push({
                     name: unknown
@@ -140,10 +144,10 @@ final class DelegateBuilder {
                 fields.push({
                     name: unknown,
                         access: [APrivate],
-                        kind: FVar(v.t.toComplexType(), null),
+                        kind: FVar(type.toComplexType(), null),
                     pos: pos
                 });
-                
+
                 inputs.push(unknown);
             }
 
@@ -222,6 +226,14 @@ final class DelegateBuilder {
                 }
             default:
         }
+    }
+    
+    private static function checkClassVar(name : String) : haxe.macro.Type {
+        var field = Context.getLocalClass().get().findField(name);
+        if(field != null) {
+            return field.type;
+        }
+        return null;
     }
     
     private static function createInnerExpression(name : String, expr : Expr, args : Array<FunctionArg>, ret : Null<ComplexType>, fields : Array<Field>, inputs : Array<String>, pos : Position) : Expr {
