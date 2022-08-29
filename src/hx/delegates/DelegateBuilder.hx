@@ -122,7 +122,7 @@ final class DelegateBuilder {
             return expr;
 
         var unknowns = [];
-        searchUnknowns(def, unknowns);
+        searchUnknowns(def, args, unknowns);
 
         var vs = Context.getLocalTVars();
         inputs.push('this');
@@ -179,57 +179,61 @@ final class DelegateBuilder {
         return expr;
     }
     
-    private static function searchUnknowns(def : ExprDef, unknowns : Array<String>) : Void {
+    private static function searchUnknowns(def : ExprDef, args : Array<FunctionArg>, unknowns : Array<String>) : Void {
+        var search = searchUnknowns.bind(_, args, unknowns);
         switch(def) {
             case EParenthesis(e):
-                searchUnknowns(e.expr, unknowns);
+                search(e.expr);
             case EMeta(s, e):
-                searchUnknowns(e.expr, unknowns);
+                search(e.expr);
             case EBlock(e):
                 for(es in e) {
-                    searchUnknowns(es.expr, unknowns);
+                    search(es.expr);
                 }
             case EReturn(e):
-                searchUnknowns(e.expr, unknowns);
+                search(e.expr);
             case EBinop(op, e1, e2):
-                searchUnknowns(e1.expr, unknowns);
-                searchUnknowns(e2.expr, unknowns);
+                search(e1.expr);
+                search(e2.expr);
             case EField(e, field):
-                searchUnknowns(e.expr, unknowns);
+                search(e.expr);
             case EConst(CIdent(s)):
+                for(arg in args)
+                    if(arg.name == s) return;
+
                 unknowns.push(s);
             case EArray(e1, e2):
-                searchUnknowns(e1.expr, unknowns);
-                searchUnknowns(e2.expr, unknowns);
+                search(e1.expr);
+                search(e2.expr);
             case EArrayDecl(values):
                 for(value in values)
-                    searchUnknowns(value.expr, unknowns);
+                    search(value.expr);
             case EIf(econd, eif, eelse):
-                searchUnknowns(econd.expr, unknowns);
-                searchUnknowns(eif.expr, unknowns);
-                if(eelse != null) searchUnknowns(eelse.expr, unknowns);
+                search(econd.expr);
+                search(eif.expr);
+                if(eelse != null) search(eelse.expr);
             case EFor(it, e):
-                searchUnknowns(it.expr, unknowns);
-                searchUnknowns(e.expr, unknowns);
+                search(it.expr);
+                search(e.expr);
             case EWhile(econd, e, norm):
-                searchUnknowns(econd.expr, unknowns);
-                searchUnknowns(e.expr, unknowns);
+                search(econd.expr);
+                search(e.expr);
             case ECall(e, params):
-                searchUnknowns(e.expr, unknowns);
+                search(e.expr);
                 for(param in params) {
-                    searchUnknowns(param.expr, unknowns);
+                    search(param.expr);
                 }
             case ETry(e, catches):
-                searchUnknowns(e.expr, unknowns);
+                search(e.expr);
                 for(c in catches) {
-                    searchUnknowns(c.expr.expr, unknowns);
+                    search(c.expr.expr);
                 }
             case EThrow(e):
-                searchUnknowns(e.expr, unknowns);
+                search(e.expr);
             case ETernary(econd, eif, eelse):
-                searchUnknowns(econd.expr, unknowns);
-                searchUnknowns(eif.expr, unknowns);
-                searchUnknowns(eelse.expr, unknowns);
+                search(econd.expr);
+                search(eif.expr);
+                search(eelse.expr);
             default:
         }
     }

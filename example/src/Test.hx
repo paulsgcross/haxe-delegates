@@ -6,12 +6,17 @@ class Test {
     private var outer : Int;
     private var testFunc : (Int, Int) -> Int;
     private var testDelegate : Delegate<(Int, Int) -> Int>;
-    private var testDelegate1 : Delegate<Void -> Int>;
+
+    private var testDelegate1 : Delegate<Delegate<Int -> Int> -> Void>;
+    private var testDelegate2 : Delegate<Int -> Int>;
 
     public function new() {
         outer = 5;
 
-        testDelegate1 = DelegateBuilder.from(()->(return(outer)));
+        testDelegate1 = DelegateBuilder.from((d)->(d.call(3)));
+        //testDelegate2 = DelegateBuilder.from((i)->(return(i+outer)));
+
+        //testDelegate1.call(testDelegate2);
     }
 
     public function runNoninlined() {
