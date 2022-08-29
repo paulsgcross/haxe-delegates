@@ -29,8 +29,10 @@ class Test {
 
     public function runAnon() {
         trace('*** Running with anonymous functions ***');
-        testFunc = (a, b) -> (return a+b+outer);
-        testDelegate = DelegateBuilder.from((a, b) -> (return a+b+outer));
+
+        var v = 3;
+        testFunc = (a, b) -> (return a+b+outer+v);
+        testDelegate = DelegateBuilder.from((a, b) -> (return a+b+outer+v));
         doTest();
     }
 

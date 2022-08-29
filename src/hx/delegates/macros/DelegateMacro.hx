@@ -11,7 +11,7 @@ using haxe.macro.ComplexTypeTools;
 
 using StringTools;
 
-final class Macro {
+final class DelegateMacro {
 
     private static var _delegateCount : Int = 0;
 
