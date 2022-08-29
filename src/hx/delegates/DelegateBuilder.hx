@@ -151,6 +151,9 @@ final class DelegateBuilder {
                 inputs.push(unknown);
             }
 
+            if(inputs.length <= 1)
+                return expr;
+
             var exprs : Array<Expr> = [];
             for(input in inputs) {
                 if(input == 'this')
@@ -198,6 +201,9 @@ final class DelegateBuilder {
             case EField(e, field):
                 search(e.expr);
             case EConst(CIdent(s)):
+                if(s == 'trace')
+                    return;
+
                 for(arg in args)
                     if(arg.name == s) return;
 

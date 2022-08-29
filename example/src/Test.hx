@@ -1,5 +1,7 @@
 import haxe.Timer;
-import hx.delegates.*;
+import hx.delegates.Ref;
+import hx.delegates.Delegate;
+import hx.delegates.DelegateBuilder;
 
 class Test {
 
@@ -7,29 +9,34 @@ class Test {
     private var testFunc : (Int, Int) -> Int;
     private var testDelegate : Delegate<(Int, Int) -> Int>;
 
-    private var testDelegate1 : Delegate<Delegate<Int -> Int> -> Void>;
-    private var testDelegate2 : Delegate<Int -> Int>;
+    private var testDelegate1 : Delegate<Int->Int>;
+    private var testDelegate2 : Delegate<Delegate<Int->Int> -> Void>;
 
     public function new() {
         outer = 5;
+        
+        testDelegate1 = DelegateBuilder.from(function(i) {
+            return i;
+        });
 
-        testDelegate1 = DelegateBuilder.from((d)->(d.call(3)));
-        //testDelegate2 = DelegateBuilder.from((i)->(return(i+outer)));
+        testDelegate2 = DelegateBuilder.from(function(d : hx.delegates.Delegate<Int->Int>) {
+            trace(d.call(4));
+        });
 
-        //testDelegate1.call(testDelegate2);
+        testDelegate2.call(testDelegate1);
     }
 
     public function runNoninlined() {
         trace('*** Running without inlines ***');
         testFunc = myFunction;
-        testDelegate = DelegateBuilder.from(myFunction);
+        //testDelegate = DelegateBuilder.from(myFunction);
         doTest();
     }
 
     public function runInlined() {
         trace('*** Running with inlines ***');
         testFunc = myInlinedFunction;
-        testDelegate = DelegateBuilder.from(myInlinedFunction);
+        //testDelegate = DelegateBuilder.from(myInlinedFunction);
         doTest();
     }
 
@@ -51,7 +58,7 @@ class Test {
 
         var t = Timer.stamp();
         for(i in 0...N) {
-            testDelegate.call(i, i);
+            //testDelegate.call(i, i);
         }
         trace('Delegate: ' + (Timer.stamp() - t));
 
