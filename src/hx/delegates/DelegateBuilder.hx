@@ -26,11 +26,12 @@ final class DelegateBuilder {
             case EFunction(kind, f):
                 var name = 'inline${_delegateCount++}';
                 var inputs = handleInlineExpression(name, expr, fields, pos);
-                var type = resolveType(f.args, f.expr);
+                var type = resolveType(f.args, null, f.expr);
                 return createType(type, name, fields, inputs, pos);
             case EConst(CIdent(s)):
                 var inputs = handleIdentExpression(s, fields, pos);
-                return createType('', s, fields, inputs, pos);
+                var type = resolveIdentType(s);
+                return createType(type, s, fields, inputs, pos);
             default:
                 Context.error('Incorrect function type', pos);
         }
@@ -69,17 +70,48 @@ final class DelegateBuilder {
             };
     }
 
-    private static function resolveType(args : Array<FunctionArg>, expr : Expr) : String {
+    private static function resolveIdentType(ident : String) : String {
+        var localClass = Context.getLocalClass().get();
+        var classFields = localClass.fields.get();
+        var field = localClass.findField(ident);
+        if(field != null) {
+            var typedExpr = Context.getTypedExpr(field.expr());
+            switch(typedExpr.expr) {
+                case EFunction(kind, f):
+                    return resolveType(f.args, f.ret, f.expr);
+                default:
+            }
+        }
+        Context.error('Delegate must be function type.', Context.currentPos());
+        return '';
+    }
+
+    private static function resolveType(args : Array<FunctionArg>, ret : Null<ComplexType>, expr : Expr) : String {
         var name  = 'Delegate';
 
         for(arg in args) {
             if(arg.type == null)
                 Context.error('Delegates must have their argument types explicitly defined', Context.currentPos());
-            name += '_' + arg.type.toString();
+            switch(arg.type) {
+                case TPath(p):
+                    if(p.name == 'StdTypes')
+                        name += '_' + p.sub;
+                    else name += '_' + p.name;
+                default:
+            }
         }
 
-        var type = getReturnType(expr);
-        name += '_' + type.toString();
+        var type = (ret == null)
+            ? getReturnType(expr)
+            : ret;
+
+            switch(type) {
+                case TPath(p):
+                    if(p.name == 'StdTypes')
+                        name += '_' + p.sub;
+                    else name += '_' + p.name;
+                default:
+            }
 
         return name;
     }
@@ -263,6 +295,8 @@ final class DelegateBuilder {
                     search(c.expr.expr);
                 }
             case EThrow(e):
+                search(e.expr);
+            case ECheckType(e, t):
                 search(e.expr);
             case ETernary(econd, eif, eelse):
                 search(econd.expr);
