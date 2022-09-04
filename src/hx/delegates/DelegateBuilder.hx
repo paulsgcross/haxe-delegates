@@ -1,5 +1,6 @@
 package hx.delegates;
 
+import haxe.macro.Compiler;
 #if macro
 import haxe.macro.Expr;
 import haxe.macro.Context;
@@ -25,10 +26,11 @@ final class DelegateBuilder {
             case EFunction(kind, f):
                 var name = 'inline${_delegateCount++}';
                 var inputs = handleInlineExpression(name, expr, fields, pos);
-                return createType(name, fields, inputs, pos);
+                var type = resolveType(f.args, f.expr);
+                return createType(type, name, fields, inputs, pos);
             case EConst(CIdent(s)):
                 var inputs = handleIdentExpression(s, fields, pos);
-                return createType(s, fields, inputs, pos);
+                return createType('', s, fields, inputs, pos);
             default:
                 Context.error('Incorrect function type', pos);
         }
@@ -36,22 +38,15 @@ final class DelegateBuilder {
     }
 
     #if macro
-    private static function createType(ident : String, fields : Array<Field>, inputs : Array<String>, pos : Position) : Expr {
+    private static function createType(delName : String, ident : String, fields : Array<Field>, inputs : Array<String>, pos : Position) : Expr {
         var module = Context.getLocalModule();
         var type = Context.getExpectedType();
-        var expectedPack = [];
-        var expectedName = '';
-        switch(type) {
-            case TInst(t, params):
-                expectedPack = t.get().pack;
-                expectedName = t.get().name.replace('.', '');
-            default:
-        }
+        var delegatePack = ['delegates'];
+        var delegateName = delName;
 
         var pack = module.toLowerCase().split('.');
         pack.insert(0, 'delegates');
-        var name = '${expectedName}_${ident}';
-
+        var name = '${delegateName}_${ident}';
         try {
             Context.getType(pack.join('.') + '.' + name);
         } catch (e : Dynamic) {
@@ -59,7 +54,7 @@ final class DelegateBuilder {
                 pos: pos,
                 pack: pack,
                 name: name,
-                kind: TDClass({pack: expectedPack, name: expectedName}, null, false, true, false),
+                kind: TDClass({pack: delegatePack, name: delegateName}, null, false, true, false),
                 fields: fields
             });
         }
@@ -72,6 +67,37 @@ final class DelegateBuilder {
         return {expr: ENew({pack: pack, name : name}, params),
                 pos: pos
             };
+    }
+
+    private static function resolveType(args : Array<FunctionArg>, expr : Expr) : String {
+        var name  = 'Delegate';
+
+        for(arg in args) {
+            if(arg.type == null)
+                Context.error('Delegates must have their argument types explicitly defined', Context.currentPos());
+            name += '_' + arg.type.toString();
+        }
+
+        var type = getReturnType(expr);
+        name += '_' + type.toString();
+
+        return name;
+    }
+
+    private static function getReturnType(expr : Expr) : ComplexType {
+        switch(expr.expr) {
+            case EParenthesis(e):
+                return getReturnType(e);
+            case EReturn(e):
+                return getReturnType(e);
+            case EMeta(s, e):
+                return getReturnType(e);
+            case ECheckType(e, t):
+                return t;
+            default:
+                Context.error('Delegates return expression must be unified with the desired return type', Context.currentPos());
+        }
+        return null;
     }
 
     private static function handleIdentExpression(ident : String, fields : Array<Field>, pos : Position) : Array<String> {
