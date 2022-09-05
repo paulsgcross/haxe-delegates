@@ -5,5 +5,6 @@ class Main {
         test.runNoninlined();
         test.runInlined();
         test.runAnon();
+        test.runReferenced();
     }
 }

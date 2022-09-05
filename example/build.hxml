@@ -2,8 +2,6 @@
 --class-path src
 --main Main
 
---debug
-
 --dce full
 
 --library haxe-delegates
