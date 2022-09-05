@@ -8,9 +8,12 @@ class Test {
     private var outer : Int;
     private var testFunc : (Int, Int) -> Int;
     private var testDelegate : Delegate<(Int, Int) -> Int>;
+    private var delegates : Vector<Delegate<(Int, Int) -> Int>>;
 
     public function new() {
         outer = 5;
+        delegates= new Vector(5);
+        delegates[0] = DelegateBuilder.from(myFunction);
     }
 
     public function runNoninlined() {

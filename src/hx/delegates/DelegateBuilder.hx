@@ -1,7 +1,8 @@
 package hx.delegates;
 
-import haxe.macro.Compiler;
 #if macro
+import hx.delegates.macros.ExpressionSearch;
+import haxe.macro.Compiler;
 import haxe.macro.Expr;
 import haxe.macro.Context;
 import haxe.macro.Expr.Position;
@@ -101,35 +102,28 @@ final class DelegateBuilder {
             }
         }
 
-        var type = (ret == null)
-            ? getReturnType(expr)
-            : ret;
+        var result : Result<ComplexType> = {t: []};
+        var type = null;
+        if(ret == null) {
+            ExpressionSearch.search(expr, 'ECheckType', result, function(def, result) {
+                switch(def) {
+                    case ECheckType(e, t):
+                        result.t.push(t);
+                    default:
+                }
+            });
+            type = result.t[0];
+        } else type = ret;
 
-            switch(type) {
-                case TPath(p):
-                    if(p.name == 'StdTypes')
-                        name += '_' + p.sub;
-                    else name += '_' + p.name;
-                default:
-            }
+        switch(type) {
+            case TPath(p):
+                if(p.name == 'StdTypes')
+                    name += '_' + p.sub;
+                else name += '_' + p.name;
+            default:
+        }
 
         return name;
-    }
-
-    private static function getReturnType(expr : Expr) : ComplexType {
-        switch(expr.expr) {
-            case EParenthesis(e):
-                return getReturnType(e);
-            case EReturn(e):
-                return getReturnType(e);
-            case EMeta(s, e):
-                return getReturnType(e);
-            case ECheckType(e, t):
-                return t;
-            default:
-                Context.error('Delegates return expression must be unified with the desired return type', Context.currentPos());
-        }
-        return null;
     }
 
     private static function handleIdentExpression(ident : String, fields : Array<Field>, pos : Position) : Array<String> {
@@ -181,9 +175,17 @@ final class DelegateBuilder {
         if(def == null)
             return expr;
 
-        var unknowns = [];
-        searchUnknowns(def, args, unknowns);
+        var argNames = [for(arg in args) arg.name];
+        var result : Result<String> = {t: []};
+        ExpressionSearch.search(expr, 'EConst', result, function(def, result) {
+            switch(def) {
+                case EConst(CIdent(s)):
+                    if(s != 'trace' && !Lambda.has(argNames, s)) result.t.push(s);
+                default:
+            }
+        });
 
+        var unknowns = result.t;
         var vs = Context.getLocalTVars();
         inputs.push('this');
         if(unknowns.length > 0) {
@@ -242,69 +244,6 @@ final class DelegateBuilder {
         return expr;
     }
     
-    private static function searchUnknowns(def : ExprDef, args : Array<FunctionArg>, unknowns : Array<String>) : Void {
-        var search = searchUnknowns.bind(_, args, unknowns);
-        switch(def) {
-            case EParenthesis(e):
-                search(e.expr);
-            case EMeta(s, e):
-                search(e.expr);
-            case EBlock(e):
-                for(es in e) {
-                    search(es.expr);
-                }
-            case EReturn(e):
-                search(e.expr);
-            case EBinop(op, e1, e2):
-                search(e1.expr);
-                search(e2.expr);
-            case EField(e, field):
-                search(e.expr);
-            case EConst(CIdent(s)):
-                if(s == 'trace')
-                    return;
-
-                for(arg in args)
-                    if(arg.name == s) return;
-
-                unknowns.push(s);
-            case EArray(e1, e2):
-                search(e1.expr);
-                search(e2.expr);
-            case EArrayDecl(values):
-                for(value in values)
-                    search(value.expr);
-            case EIf(econd, eif, eelse):
-                search(econd.expr);
-                search(eif.expr);
-                if(eelse != null) search(eelse.expr);
-            case EFor(it, e):
-                search(it.expr);
-                search(e.expr);
-            case EWhile(econd, e, norm):
-                search(econd.expr);
-                search(e.expr);
-            case ECall(e, params):
-                search(e.expr);
-                for(param in params) {
-                    search(param.expr);
-                }
-            case ETry(e, catches):
-                search(e.expr);
-                for(c in catches) {
-                    search(c.expr.expr);
-                }
-            case EThrow(e):
-                search(e.expr);
-            case ECheckType(e, t):
-                search(e.expr);
-            case ETernary(econd, eif, eelse):
-                search(econd.expr);
-                search(eif.expr);
-                search(eelse.expr);
-            default:
-        }
-    }
     
     private static function checkClassVar(name : String) : haxe.macro.Type {
         var field = Context.getLocalClass().get().findField(name);
