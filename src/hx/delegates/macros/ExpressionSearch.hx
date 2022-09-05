@@ -83,6 +83,11 @@ final class ExpressionSearch {
                         search(param, target, result, func);
                     }
                 }
+            case EObjectDecl(fields):
+                if(!doCheck(def, target, result, func)) {
+                    for(field in fields)
+                        search(field.expr, target, result, func);
+                }
             case ESwitch(e, cases, edef):
                 if(!doCheck(def, target, result, func)) {
                     search(e, target, result, func);
@@ -97,6 +102,12 @@ final class ExpressionSearch {
                     search(e, target, result, func);
                     for(c in catches) {
                         search(c.expr, target, result, func);
+                    }
+                }
+            case ENew(t, params):
+                if(!doCheck(def, target, result, func)) {
+                    for(param in params) {
+                        search(param, target, result, func);
                     }
                 }
             default:

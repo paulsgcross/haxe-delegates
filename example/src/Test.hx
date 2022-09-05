@@ -2,12 +2,14 @@ import haxe.ds.Vector;
 import haxe.Timer;
 import hx.delegates.Delegate;
 import hx.delegates.DelegateBuilder;
+import test.Wrapper;
 
 class Test {
 
     private var outer : Int;
     private var testFunc : (Int, Int) -> Int;
     private var testDelegate : Delegate<(Int, Int) -> Int>;
+
     private var delegates : Vector<Delegate<(Int, Int) -> Int>>;
 
     public function new() {
@@ -48,7 +50,7 @@ class Test {
     }
 
     public function doTest() {
-        var N = 10000000;
+        var N = 5000000;
         var t = Timer.stamp();
         for(i in 0...N) {
             testFunc(i, i);

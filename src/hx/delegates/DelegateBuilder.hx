@@ -250,7 +250,12 @@ final class DelegateBuilder {
         if(field != null) {
             return field.type;
         }
-        return null;
+
+        try {
+            return Context.getType(name);
+        } catch (e : Dynamic) {
+            return null;
+        }
     }
     
     private static function createInnerExpression(name : String, expr : Expr, args : Array<FunctionArg>, ret : Null<ComplexType>, fields : Array<Field>, inputs : Array<String>, pos : Position) : Expr {
