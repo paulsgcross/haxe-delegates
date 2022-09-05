@@ -36,16 +36,16 @@ final class DelegateMacro {
             switch(type) {
                 case TAbstract(t, params):
                     names.push(t.toString().replace('.', ''));
-                    //for(param in params)
-                     //   names.push(param.toString().replace('.', ''));
+                    for(param in params)
+                        names.push(param.toString().replace('.', ''));
                 case TInst(t, params):
                     names.push(t.get().name.replace('.', ''));
-                    //for(param in params)
-                    //    names.push(param.toString().replace('.', ''));
+                    for(param in params)
+                        names.push(param.toString().replace('.', ''));
                 case TEnum(t, params):
                     names.push(t.get().name.replace('.', ''));
-                    //for(param in params)
-                    //    names.push(param.toString().replace('.', ''));
+                    for(param in params)
+                        names.push(param.toString().replace('.', ''));
                 default:
             }
         }

@@ -6,7 +6,6 @@ import hx.delegates.DelegateBuilder;
 
 // TODO: Allow for returning wrapped types
 // TODO: Composition?
-// TODO: Handling type parameters?
 class Test {
 
     private var outer : Int;
