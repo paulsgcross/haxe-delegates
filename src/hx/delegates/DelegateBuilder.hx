@@ -16,7 +16,7 @@ using StringTools;
 
 final class DelegateBuilder {
     
-    private static var _delegateCount : Int = 0;
+    private static var count : Int = 0;
     
     public static macro function from(expr : Expr) : Expr {
         var pos = Context.currentPos();
@@ -24,7 +24,7 @@ final class DelegateBuilder {
         var field = null;
         switch(exprdef) {
             case EFunction(kind, f):
-                return handleFunctionExpression('Inline', f);
+                return handleFunctionExpression('Inline' + count++, f);
             case EConst(CIdent(s)):
                 var func = getFunctionFromIdent(s);
                 return handleFunctionExpression(s, func);
@@ -86,9 +86,9 @@ final class DelegateBuilder {
         }
 
         if(func.ret == null) {
-
+            name += findReturnType(func.expr);
         } else name += getTypeName(func.ret);
-        trace(name);
+        
         return {pack: ['delegates'], name: 'Delegates_${name}'};
     }
 
@@ -103,6 +103,12 @@ final class DelegateBuilder {
         return '';
     }
 
+    private static function findReturnType(expr : Expr) : String {
+        var out = new Out();
+        ExpressionSearch.search(expr, 'EReturn', out);
+        trace(out.expr);
+        return '';
+    }
 
     #end
 }

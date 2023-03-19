@@ -16,6 +16,9 @@ class Test {
         
         DelegateBuilder.from(myFunction);
         DelegateBuilder.from((a : Int, b : Int) -> (return (a+b) : Int));
+        DelegateBuilder.from(function (a : Int, b : Int) {
+            return a + b;
+        });
     }
 
     // public function runEvent() {

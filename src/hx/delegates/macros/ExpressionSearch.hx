@@ -5,109 +5,111 @@ import haxe.macro.Context;
 
 final class ExpressionSearch {
     
-    public static function search<T>(expr : Expr, target : String, result : Result<T>, func : (ExprDef, Result<T>) -> Void) : Void {
+    public static function search(expr : Expr, target : String, out : Out) : Void {
         var def = expr.expr;
         if(def == null)
             return;
 
+        out.expr = expr;
+
         switch(def) {
             case EParenthesis(e):
-                if(!doCheck(def, target, result, func))
-                    search(e, target, result, func);
+                if(!doCheck(def, target))
+                    search(e, target, out);
             case EReturn(e):
-                if(!doCheck(def, target, result, func) && e != null)
-                    search(e, target, result, func);
+                if(!doCheck(def, target) && e != null)
+                    search(e, target, out);
             case EMeta(s, e):
-                if(!doCheck(def, target, result, func))
-                    search(e, target, result, func);
+                if(!doCheck(def, target))
+                    search(e, target, out);
             case ECheckType(e, t):
-                if(!doCheck(def, target, result, func))
-                    search(e, target, result, func);
+                if(!doCheck(def, target))
+                    search(e, target, out);
             case EBlock(e):
-                if(!doCheck(def, target, result, func)) {
+                if(!doCheck(def, target)) {
                     for(es in e) {
-                        search(es, target, result, func);
+                        search(es, target, out);
                     }
                 }
             case ETernary(econd, eif, eelse):
-                if(!doCheck(def, target, result, func)) {
-                    search(econd, target, result, func);
-                    search(eif, target, result, func);
-                    search(eelse, target, result, func);
+                if(!doCheck(def, target)) {
+                    search(econd, target, out);
+                    search(eif, target, out);
+                    search(eelse, target, out);
                 }
             case EConst(c):
-                doCheck(def, target, result, func);
+                doCheck(def, target);
             case EBinop(op, e1, e2):
-                if(!doCheck(def, target, result, func)) {
-                    search(e1, target, result, func);
-                    search(e2, target, result, func);
+                if(!doCheck(def, target)) {
+                    search(e1, target, out);
+                    search(e2, target, out);
                 }
             case EThrow(e):
-                if(!doCheck(def, target, result, func)) {
-                    search(e, target, result, func);
+                if(!doCheck(def, target)) {
+                    search(e, target, out);
                 }
             case EField(e, field):
-                if(!doCheck(def, target, result, func)) {
-                    search(e, target, result, func);
+                if(!doCheck(def, target)) {
+                    search(e, target, out);
                 }
             case EArray(e1, e2):
-                if(!doCheck(def, target, result, func)) {
-                    search(e1, target, result, func);
-                    search(e2, target, result, func);
+                if(!doCheck(def, target)) {
+                    search(e1, target, out);
+                    search(e2, target, out);
                 }
             case EArrayDecl(values):
-                if(!doCheck(def, target, result, func)) {
+                if(!doCheck(def, target)) {
                     for(value in values)
-                        search(value, target, result, func);
+                        search(value, target, out);
                 }
             case EIf(econd, eif, eelse):
-                if(!doCheck(def, target, result, func)) {
-                    search(econd, target, result, func);
-                    search(eif, target, result, func);
-                    if(eelse != null) search(eelse, target, result, func);
+                if(!doCheck(def, target)) {
+                    search(econd, target, out);
+                    search(eif, target, out);
+                    if(eelse != null) search(eelse, target, out);
                 }
             case EFor(it, e):
-                if(!doCheck(def, target, result, func)) {
-                    search(it, target, result, func);
-                    search(e, target, result, func);
+                if(!doCheck(def, target)) {
+                    search(it, target, out);
+                    search(e, target, out);
                 }
             case EWhile(econd, e, norm):
-                if(!doCheck(def, target, result, func)) {
-                    search(econd, target, result, func);
-                    search(e, target, result, func);
+                if(!doCheck(def, target)) {
+                    search(econd, target, out);
+                    search(e, target, out);
                 }
             case ECall(e, params):
-                if(!doCheck(def, target, result, func)) {
-                    search(e, target, result, func);
+                if(!doCheck(def, target)) {
+                    search(e, target, out);
                     for(param in params) {
-                        search(param, target, result, func);
+                        search(param, target, out);
                     }
                 }
             case EObjectDecl(fields):
-                if(!doCheck(def, target, result, func)) {
+                if(!doCheck(def, target)) {
                     for(field in fields)
-                        search(field.expr, target, result, func);
+                        search(field.expr, target, out);
                 }
             case ESwitch(e, cases, edef):
-                if(!doCheck(def, target, result, func)) {
-                    search(e, target, result, func);
+                if(!doCheck(def, target)) {
+                    search(e, target, out);
                     for(c in cases)
                         if(c.expr != null)
-                            search(c.expr, target, result, func);
+                            search(c.expr, target, out);
 
-                    if(edef != null) search(edef, target, result, func);
+                    if(edef != null) search(edef, target, out);
                 }
             case ETry(e, catches):
-                if(!doCheck(def, target, result, func)) {
-                    search(e, target, result, func);
+                if(!doCheck(def, target)) {
+                    search(e, target, out);
                     for(c in catches) {
-                        search(c.expr, target, result, func);
+                        search(c.expr, target, out);
                     }
                 }
             case ENew(t, params):
-                if(!doCheck(def, target, result, func)) {
+                if(!doCheck(def, target)) {
                     for(param in params) {
-                        search(param, target, result, func);
+                        search(param, target, out);
                     }
                 }
             default:
@@ -115,16 +117,13 @@ final class ExpressionSearch {
         }
     }
 
-    public static function doCheck<T>(def : ExprDef, target : String, result : Result<T>, func : (ExprDef, Result<T>) -> Void) : Bool {
-        if(def.getName() == target) {
-            func(def, result);
-            return true;
-        }
-        return false;
+    public static function doCheck(def : ExprDef, target : String) : Bool {
+        return (def.getName() == target);
     }
 
 }
 
-typedef Result<T> = {
-    var t : Array<T>;
+final class Out {
+    public var expr : Expr;
+    public function new() {}
 }
