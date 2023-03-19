@@ -67,13 +67,13 @@ final class DelegateBuilder {
         var packageName = 'delegates';
         var className = 'Delegate_${name}';
         try {
-            Context.getType('${packageName}.${className}');
+            Context.getType('${packageName}.${module.toLowerCase()}.${className}');
         } catch (e : Dynamic) {
             Context.defineType({
                 pos: Context.currentPos(),
-                pack: [packageName],
+                pack: [packageName, module.toLowerCase()],
                 name: className,
-                kind: TDClass(superPath, null, false, true, false),
+                kind: TDClass(null, null, false, true, false),
                 fields: fields
             });
         }
