@@ -105,8 +105,12 @@ final class DelegateBuilder {
 
     private static function findReturnType(expr : Expr) : String {
         var out = new Out();
-        ExpressionSearch.search(expr, 'EReturn', out);
-        trace(out.expr);
+        ExpressionSearch.search(expr, 'ECheckType', out);
+        switch(out.expr.expr) {
+            case ECheckType(e, t):
+                return getTypeName(t);
+            default:
+        }
         return '';
     }
 
