@@ -2,8 +2,6 @@
 --class-path src
 --main Main
 
---dce full
-
 --library haxe-delegates
 --library hxcpp-debug-server
 

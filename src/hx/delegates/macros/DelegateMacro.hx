@@ -79,6 +79,7 @@ final class DelegateMacro {
         
         var fields : Array<Field> = [];
 
+        /*
         var ptype = Context.getType(module);
         fields.push({
               name: '_parent',
@@ -99,7 +100,7 @@ final class DelegateMacro {
             }),
             pos: pos
         });
-        
+        */
         fields.push({
             name: 'call',
             access: [APublic, AAbstract],
