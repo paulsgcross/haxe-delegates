@@ -79,28 +79,6 @@ final class DelegateMacro {
         
         var fields : Array<Field> = [];
 
-        /*
-        var ptype = Context.getType(module);
-        fields.push({
-              name: '_parent',
-              access: [APrivate],
-              kind: FVar(ptype.toComplexType(), null),
-              pos: pos
-        });
-
-        fields.push({
-            name: 'new',
-            access: [APublic],
-            kind: FFun({
-                args: [{name: 'parent', type: ptype.toComplexType()}],
-                expr: macro {
-                    _parent = parent;
-                },
-                ret: null
-            }),
-            pos: pos
-        });
-        */
         fields.push({
             name: 'call',
             access: [APublic, AAbstract],

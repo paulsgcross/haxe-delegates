@@ -73,7 +73,7 @@ final class DelegateBuilder {
                 pos: Context.currentPos(),
                 pack: [packageName, module.toLowerCase()],
                 name: className,
-                kind: TDClass(null, null, false, true, false),
+                kind: TDClass(superPath, null, false, true, false),
                 fields: fields
             });
         }
@@ -89,7 +89,7 @@ final class DelegateBuilder {
             name += findReturnType(func.expr);
         } else name += getTypeName(func.ret);
         
-        return {pack: ['delegates'], name: 'Delegates_${name}'};
+        return {pack: ['delegates'], name: 'Delegate_${name}'};
     }
 
     private static function getTypeName(type : ComplexType) : String {

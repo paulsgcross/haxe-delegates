@@ -14,7 +14,7 @@ class Test {
         //outer = 5;
         //delegates= new Vector(5);
         
-        DelegateBuilder.from(myFunction);
+        var func = DelegateBuilder.from(myFunction);
         DelegateBuilder.from((a : Int, b : Int) -> (return (a+b) : Int));
         DelegateBuilder.from(function (a : Int, b : Int) {
             return (a + b : Int);
