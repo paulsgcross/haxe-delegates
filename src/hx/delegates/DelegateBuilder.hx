@@ -59,11 +59,15 @@ final class DelegateBuilder {
 
         var type = resolveSuperType(func);
 
+        var scope = handleVaribleScope(func);
         fields.push(createParentVar());
         fields.push(createNew());
         fields.push(createCall(type, func.expr));
 
         var typePath = createType(type, ident, fields);
+
+        trace(scope.local);
+        trace(scope.outer);
 
         return macro {new $typePath(this);};
     }
@@ -123,7 +127,11 @@ final class DelegateBuilder {
     private static function findReturnType(expr : Expr) : ComplexType {
         var out = new Out();
         ExpressionSearch.search(expr, 'ECheckType', out);
-        switch(out.expr.expr) {
+
+        if(out.exprs.length <= 0)
+            return null;
+
+        switch(out.exprs[0].expr) {
             case ECheckType(e, t):
                 return t;
             default:
@@ -181,7 +189,48 @@ final class DelegateBuilder {
         };
     }
 
+    private static function handleVaribleScope(func : Function) : ScopedVariables {
+        var scoped = new ScopedVariables();
+
+        var out = new Out();
+        ExpressionSearch.search(func.expr, 'EField', out);
+        ExpressionSearch.search(func.expr, 'EConst', out);
+        
+        var localVars = Context.getLocalTVars();
+        var inArgs = [for(arg in func.args) arg.name => arg];
+        var funcArgs = [for(arg in out.exprs) switch(arg.expr) {
+            case EConst(CIdent(s)): s=='this'?'':s;
+            case EField(e, field): field;
+            default: '';
+        }];
+
+        var unknowns = [];
+        for(funcArg in funcArgs) {
+            if(!inArgs.exists(funcArg) && funcArg != '')
+                unknowns.push(funcArg);
+        }
+
+        for(unknown in unknowns) {
+            if(localVars.exists(unknown))
+                scoped.local.push(localVars.get(unknown).t.toComplexType());
+            else scoped.outer.push(unknown);
+        }
+
+        return scoped;
+    }
+
     #end
+}
+
+private class ScopedVariables {
+
+    public var local : Array<ComplexType>;
+    public var outer : Array<String>;
+
+    public function new() {
+        this.local = new Array();
+        this.outer = new Array();
+    }
 }
 
 private class SuperType {

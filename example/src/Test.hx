@@ -9,12 +9,16 @@ import hx.delegates.DelegateBuilder;
 class Test {
 
     private var testDelegate : Delegate<(Int, Int) -> Int>;
+    private var _outer : Int;
 
     public function new() {
         //outer = 5;
         //delegates= new Vector(5);
-        
+        _outer = 5;
+        var g = 3;
         testDelegate = DelegateBuilder.from(myFunction);
+        trace(testDelegate.call(0, 1));
+        trace(g);
         //DelegateBuilder.from((a : Int, b : Int) -> (return (a+b) : Int));
         //DelegateBuilder.from(function (a : Int, b : Int) {
         //    return (a + b : Int);
@@ -76,7 +80,7 @@ class Test {
     // }
 
     public function myFunction(a : Int, b : Int) : Int {
-        return a + b;
+        return a + b + _outer;
     }
 
     // public inline function myInlinedFunction(a : Int, b : Int) : Int {
