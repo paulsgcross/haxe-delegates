@@ -59,17 +59,17 @@ final class DelegateBuilder {
 
         var type = resolveSuperType(func);
 
+        fields.push(createParentVar());
         fields.push(createNew());
         fields.push(createCall(type, func.expr));
 
         var typePath = createType(type, ident, fields);
 
-        return macro {new $typePath();};
+        return macro {new $typePath(this);};
     }
 
     private static function createType(superPath : SuperType, name : String, fields : Array<Field>) : TypePath {
         var module = Context.getLocalModule();
-        var type = Context.getExpectedType();
         var packageName = 'delegates';
         var className = 'Delegate_${name}';
         try {
@@ -131,14 +131,27 @@ final class DelegateBuilder {
         return null;
     }
 
+    private static function createParentVar() : Field {
+        var callerType = Context.getLocalType().toComplexType();
+        
+        return {
+            name: '_parent',
+                access: [APrivate],
+                kind: FVar(callerType, null),
+            pos: Context.currentPos()
+        };
+    }
+
     private static function createNew() : Field {
+        var callerType = Context.getLocalType().toComplexType();
+        
         return {
             name: 'new',
                 access: [APublic],
                 kind: FFun({
-                    args: [],
+                    args: [{name: 'parent', type: callerType}],
                     expr: macro {
-                        
+                        _parent = parent;
                     }
                 }),
             pos: Context.currentPos()
