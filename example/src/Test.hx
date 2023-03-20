@@ -1,3 +1,4 @@
+import sys.thread.EventLoop;
 import hx.delegates.Ref;
 import haxe.ds.Vector;
 import haxe.Timer;
@@ -8,21 +9,22 @@ import hx.delegates.DelegateBuilder;
 // TODO: Composition?
 class Test {
 
-    private var testDelegate : Delegate<(Int, Int) -> Int>;
     private var _outer : Int;
 
     public function new() {
-        testDelegate = DelegateBuilder.from(myFunction);
-        trace(testDelegate.call(0, 1));
+        var event = new EventTest();
+        _outer= 5;
+        event.delegate = DelegateBuilder.from(myFunction);
+        trace(event.delegate.call(3, 1));
         
-        var g = 6;
-        testDelegate = DelegateBuilder.from((a : Int, b : Int) -> (return (a+b+g) : Int));
-        trace(testDelegate.call(0, 1));
+        // var g = 6;
+        // testDelegate = DelegateBuilder.from((a : Int, b : Int) -> (return (a+b+g) : Int));
+        // trace(testDelegate.call(0, 1));
         
-        testDelegate = DelegateBuilder.from(function(a : Int, b : Int) {
-            return ((a+b) : Int);
-        });
-        trace(testDelegate.call(0, 1));
+        // testDelegate = DelegateBuilder.from(function(a : Int, b : Int) {
+        //     return ((a+b) : Int);
+        // });
+        // trace(testDelegate.call(0, 1));
     }
 
     // public function runEvent() {
@@ -79,8 +81,8 @@ class Test {
     //     trace('Function type with ref: ' + (Timer.stamp() - t));
     // }
 
-    public function myFunction(a : Int, b : Int) : Int {
-        return a + b;
+    inline public function myFunction(a : Int, b : Int) : Int {
+        return a + b + _outer;
     }
 
     // public inline function myInlinedFunction(a : Int, b : Int) : Int {

@@ -1,8 +1,8 @@
 package hx.delegates;
 
+#if macro
 import haxe.macro.Expr.ComplexType;
 import haxe.macro.Expr.TypePath;
-#if macro
 import hx.delegates.macros.ExpressionSearch;
 import haxe.macro.Compiler;
 import haxe.macro.Expr;
@@ -67,9 +67,9 @@ final class DelegateBuilder {
         
         switch(funcType) {
             case Inline:
-                fields.push(createIdentCall(type, func.expr));
+                fields.push(createInlineCall(type));
             case Ident:
-                fields.push(createInlineCall(type, func.expr));
+                fields.push(createIdentCall(ident, type, func));
         }
 
         var typePath = createType(type, ident, fields);
@@ -196,15 +196,19 @@ final class DelegateBuilder {
         return outVars;
     }
 
-    private static function createIdentCall(superType : SuperType, funcExpr : Expr) : Field {
-        return createCall(superType, funcExpr, macro {return 0;});
+    private static function createIdentCall(ident : String, superType : SuperType, func : Function) : Field {
+        var index = 0;
+        var args = [for(arg in func.args) macro{$i{'arg${index++}'};}];
+        if(func.ret != null) {
+            return createCall(superType, macro {return _parent.$ident($a{args});});
+        } else return createCall(superType, macro {_parent.$ident($a{args});});
     }
 
-    private static function createInlineCall(superType : SuperType, funcExpr : Expr) : Field {
-        return createCall(superType, funcExpr, macro {return 0;});
+    private static function createInlineCall(superType : SuperType) : Field {
+        return createCall(superType, macro {return 0;});
     }
 
-    private static function createCall(superType : SuperType, funcExpr : Expr, innerExpr : Expr) : Field {
+    private static function createCall(superType : SuperType, innerExpr : Expr) : Field {
         var index = 0;
         var argName = 'arg';
 
@@ -228,7 +232,6 @@ final class DelegateBuilder {
     private static function createInstantiation(typePath : TypePath, inVars : Array<String>) : Expr {
         var exprs = [for(name in inVars) macro {$i{name}}];
         exprs.insert(0, macro {this;});
-
         return macro {new $typePath($a{exprs});};
     }
 
@@ -265,6 +268,7 @@ final class DelegateBuilder {
     #end
 }
 
+#if macro
 private class ScopedVariables {
 
     public var local : Map<String, ComplexType>;
@@ -291,3 +295,4 @@ enum FunctionType {
     Ident;
     Inline;
 }
+#end
