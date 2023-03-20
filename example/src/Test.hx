@@ -12,17 +12,11 @@ class Test {
     private var _outer : Int;
 
     public function new() {
-        //outer = 5;
-        //delegates= new Vector(5);
-        _outer = 5;
-        var g = 3;
         testDelegate = DelegateBuilder.from(myFunction);
         trace(testDelegate.call(0, 1));
-        trace(g);
-        //DelegateBuilder.from((a : Int, b : Int) -> (return (a+b) : Int));
-        //DelegateBuilder.from(function (a : Int, b : Int) {
-        //    return (a + b : Int);
-        //});
+        
+        testDelegate = DelegateBuilder.from((a : Int, b : Int) -> (return (a+b+g) : Int));
+        trace(testDelegate.call(0, 1));
     }
 
     // public function runEvent() {
@@ -80,7 +74,7 @@ class Test {
     // }
 
     public function myFunction(a : Int, b : Int) : Int {
-        return a + b + _outer;
+        return a + b;
     }
 
     // public inline function myInlinedFunction(a : Int, b : Int) : Int {

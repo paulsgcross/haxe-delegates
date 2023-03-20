@@ -6,6 +6,8 @@ import haxe.macro.Expr.TypePath;
 import hx.delegates.macros.ExpressionSearch;
 import haxe.macro.Compiler;
 import haxe.macro.Expr;
+import haxe.macro.Type.TVar;
+import haxe.macro.Type;
 import haxe.macro.Context;
 import haxe.macro.Expr.Position;
 
@@ -26,10 +28,10 @@ final class DelegateBuilder {
         var field = null;
         switch(exprdef) {
             case EFunction(kind, f):
-                return handleFunctionExpression('Inline' + count++, f);
+                return handleFunctionExpression('Inline' + count++, f, FunctionType.Inline);
             case EConst(CIdent(s)):
                 var func = getFunctionFromIdent(s);
-                return handleFunctionExpression(s, func);
+                return handleFunctionExpression(s, func, FunctionType.Ident);
             default:
                 Context.error('Incorrect function type', pos);
         }
@@ -54,22 +56,26 @@ final class DelegateBuilder {
         return null;
     }
 
-    private static function handleFunctionExpression(ident : String, func : Function) : Expr {
+    private static function handleFunctionExpression(ident : String, func : Function, funcType : FunctionType) : Expr {
         var fields = [];
 
         var type = resolveSuperType(func);
 
         var scope = handleVaribleScope(func);
-        fields.push(createParentVar());
-        fields.push(createNew());
-        fields.push(createCall(type, func.expr));
+        
+        fields.push(createClassVars(scope));
+        fields.push(createNew(scope));
+
+        switch(funcType) {
+            case Inline:
+                fields.push(createIdentCall(type, func.expr));
+            case Ident:
+                fields.push(createInlineCall(type, func.expr));
+        }
 
         var typePath = createType(type, ident, fields);
 
-        trace(scope.local);
-        trace(scope.outer);
-
-        return macro {new $typePath(this);};
+        return createInstantiation(typePath, scope);
     }
 
     private static function createType(superPath : SuperType, name : String, fields : Array<Field>) : TypePath {
@@ -139,7 +145,7 @@ final class DelegateBuilder {
         return null;
     }
 
-    private static function createParentVar() : Field {
+    private static function createClassVars(scope : ScopedVariables) : Field {
         var callerType = Context.getLocalType().toComplexType();
         
         return {
@@ -150,7 +156,7 @@ final class DelegateBuilder {
         };
     }
 
-    private static function createNew() : Field {
+    private static function createNew(scope : ScopedVariables) : Field {
         var callerType = Context.getLocalType().toComplexType();
         
         return {
@@ -166,7 +172,15 @@ final class DelegateBuilder {
         };
     }
 
-    private static function createCall(superType : SuperType, funcExpr : Expr) : Field {
+    private static function createIdentCall(superType : SuperType, funcExpr : Expr) : Field {
+        return createCall(superType, funcExpr, macro {return 0;});
+    }
+
+    private static function createInlineCall(superType : SuperType, funcExpr : Expr) : Field {
+        return createCall(superType, funcExpr, macro {return 0;});
+    }
+
+    private static function createCall(superType : SuperType, funcExpr : Expr, innerExpr : Expr) : Field {
         var index = 0;
         var argName = 'arg';
 
@@ -180,13 +194,15 @@ final class DelegateBuilder {
                 access: [APublic],
                 kind: FFun({
                     args: funcArg,
-                    expr: macro {
-                        return 0;
-                    },
+                    expr: innerExpr,
                     ret: superType.ret
                 }),
             pos: Context.currentPos()
         };
+    }
+
+    private static function createInstantiation(typePath : TypePath, scope : ScopedVariables) : Expr {
+        return macro {new $typePath(this);};
     }
 
     private static function handleVaribleScope(func : Function) : ScopedVariables {
@@ -212,7 +228,7 @@ final class DelegateBuilder {
 
         for(unknown in unknowns) {
             if(localVars.exists(unknown))
-                scoped.local.push(localVars.get(unknown).t.toComplexType());
+                scoped.local.set(unknown, localVars.get(unknown).t.toComplexType());
             else scoped.outer.push(unknown);
         }
 
@@ -224,11 +240,11 @@ final class DelegateBuilder {
 
 private class ScopedVariables {
 
-    public var local : Array<ComplexType>;
+    public var local : Map<String, ComplexType>;
     public var outer : Array<String>;
 
     public function new() {
-        this.local = new Array();
+        this.local = new Map();
         this.outer = new Array();
     }
 }
@@ -242,4 +258,9 @@ private class SuperType {
     public function new() {
         this.args = new Array();
     }
+}
+
+enum FunctionType {
+    Ident;
+    Inline;
 }
