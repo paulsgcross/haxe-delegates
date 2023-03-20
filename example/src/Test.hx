@@ -15,7 +15,13 @@ class Test {
         testDelegate = DelegateBuilder.from(myFunction);
         trace(testDelegate.call(0, 1));
         
+        var g = 6;
         testDelegate = DelegateBuilder.from((a : Int, b : Int) -> (return (a+b+g) : Int));
+        trace(testDelegate.call(0, 1));
+        
+        testDelegate = DelegateBuilder.from(function(a : Int, b : Int) {
+            return ((a+b) : Int);
+        });
         trace(testDelegate.call(0, 1));
     }
 

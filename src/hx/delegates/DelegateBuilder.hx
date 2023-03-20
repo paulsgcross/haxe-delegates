@@ -62,10 +62,9 @@ final class DelegateBuilder {
         var type = resolveSuperType(func);
 
         var scope = handleVaribleScope(func);
+        createClassVars(scope, fields);
+        var newVars = createNew(scope, fields);
         
-        fields.push(createClassVars(scope));
-        fields.push(createNew(scope));
-
         switch(funcType) {
             case Inline:
                 fields.push(createIdentCall(type, func.expr));
@@ -75,7 +74,7 @@ final class DelegateBuilder {
 
         var typePath = createType(type, ident, fields);
 
-        return createInstantiation(typePath, scope);
+        return createInstantiation(typePath, newVars);
     }
 
     private static function createType(superPath : SuperType, name : String, fields : Array<Field>) : TypePath {
@@ -145,31 +144,56 @@ final class DelegateBuilder {
         return null;
     }
 
-    private static function createClassVars(scope : ScopedVariables) : Field {
+    private static function createClassVars(scope : ScopedVariables, fields : Array<Field>) : Void {
         var callerType = Context.getLocalType().toComplexType();
-        
-        return {
+        fields.push({
             name: '_parent',
                 access: [APrivate],
                 kind: FVar(callerType, null),
             pos: Context.currentPos()
-        };
+        });
+
+        for(entry in scope.local.keyValueIterator()) {
+            var name = entry.key;
+            var type = entry.value;
+            fields.push({
+                name: '_${name}',
+                    access: [APrivate],
+                    kind: FVar(type, null),
+                pos: Context.currentPos()
+            });
+        }
     }
 
-    private static function createNew(scope : ScopedVariables) : Field {
+    private static function createNew(scope : ScopedVariables, fields : Array<Field>) : Array<String> {
         var callerType = Context.getLocalType().toComplexType();
-        
-        return {
+        var args = [];
+        var exprs = [];
+        var outVars = [];
+        args.push({name: 'parent', type: callerType});
+        exprs.push(macro{ $i{'_parent'} = $i{'parent'}; });
+
+        for(entry in scope.local.keyValueIterator()) {
+            var name = entry.key;
+            var type = entry.value;
+            args.push({name: name, type: type});
+
+            exprs.push(macro{ $i{'_$name'} = $i{name}; });
+
+            outVars.push(name);
+        }
+
+        fields.push({
             name: 'new',
                 access: [APublic],
                 kind: FFun({
-                    args: [{name: 'parent', type: callerType}],
-                    expr: macro {
-                        _parent = parent;
-                    }
+                    args: args,
+                    expr: macro {$b{exprs}}
                 }),
             pos: Context.currentPos()
-        };
+        });
+
+        return outVars;
     }
 
     private static function createIdentCall(superType : SuperType, funcExpr : Expr) : Field {
@@ -201,8 +225,11 @@ final class DelegateBuilder {
         };
     }
 
-    private static function createInstantiation(typePath : TypePath, scope : ScopedVariables) : Expr {
-        return macro {new $typePath(this);};
+    private static function createInstantiation(typePath : TypePath, inVars : Array<String>) : Expr {
+        var exprs = [for(name in inVars) macro {$i{name}}];
+        exprs.insert(0, macro {this;});
+
+        return macro {new $typePath($a{exprs});};
     }
 
     private static function handleVaribleScope(func : Function) : ScopedVariables {
