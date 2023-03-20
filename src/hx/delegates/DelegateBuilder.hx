@@ -1,5 +1,7 @@
 package hx.delegates;
 
+import haxe.macro.Expr.ComplexType;
+import haxe.macro.Expr.TypePath;
 #if macro
 import hx.delegates.macros.ExpressionSearch;
 import haxe.macro.Compiler;
@@ -56,12 +58,16 @@ final class DelegateBuilder {
         var fields = [];
 
         var type = resolveSuperType(func);
-        createType(type, ident, fields);
 
-        return macro {};
+        fields.push(createNew());
+        fields.push(createCall(type, func.expr));
+
+        var typePath = createType(type, ident, fields);
+
+        return macro {new $typePath();};
     }
 
-    private static function createType(superPath : TypePath, name : String, fields : Array<Field>) : Void {
+    private static function createType(superPath : SuperType, name : String, fields : Array<Field>) : TypePath {
         var module = Context.getLocalModule();
         var type = Context.getExpectedType();
         var packageName = 'delegates';
@@ -73,23 +79,34 @@ final class DelegateBuilder {
                 pos: Context.currentPos(),
                 pack: [packageName, module.toLowerCase()],
                 name: className,
-                kind: TDClass(superPath, null, false, true, false),
+                kind: TDClass(superPath.typePath, null, false, true, false),
                 fields: fields
             });
         }
+        return {pack: [packageName, module.toLowerCase()], name: className};
     }
 
-    private static function resolveSuperType(func : Function) : TypePath {
+    private static function resolveSuperType(func : Function) : SuperType {
+        var superType = new SuperType();
+        
         var name = '';
         for(arg in func.args) {
             name += '${getTypeName(arg.type)}_';
+            superType.args.push(arg.type);
         }
 
         if(func.ret == null) {
-            name += findReturnType(func.expr);
-        } else name += getTypeName(func.ret);
-        
-        return {pack: ['delegates'], name: 'Delegate_${name}'};
+            var type = findReturnType(func.expr);
+            name += getTypeName(type);
+            superType.ret = type;
+        } else {
+            name += getTypeName(func.ret);
+            superType.ret = func.ret;
+        }
+
+        superType.typePath = {pack: ['delegates'], name: 'Delegate_${name}'};
+
+        return superType;
     }
 
     private static function getTypeName(type : ComplexType) : String {
@@ -103,16 +120,64 @@ final class DelegateBuilder {
         return '';
     }
 
-    private static function findReturnType(expr : Expr) : String {
+    private static function findReturnType(expr : Expr) : ComplexType {
         var out = new Out();
         ExpressionSearch.search(expr, 'ECheckType', out);
         switch(out.expr.expr) {
             case ECheckType(e, t):
-                return getTypeName(t);
+                return t;
             default:
         }
-        return '';
+        return null;
+    }
+
+    private static function createNew() : Field {
+        return {
+            name: 'new',
+                access: [APublic],
+                kind: FFun({
+                    args: [],
+                    expr: macro {
+                        
+                    }
+                }),
+            pos: Context.currentPos()
+        };
+    }
+
+    private static function createCall(superType : SuperType, funcExpr : Expr) : Field {
+        var index = 0;
+        var argName = 'arg';
+
+        var funcArg = [];
+        for(arg in superType.args) {
+            funcArg.push({name: '$argName${index++}', type: arg});
+        }
+
+        return {
+            name: 'call',
+                access: [APublic],
+                kind: FFun({
+                    args: funcArg,
+                    expr: macro {
+                        return 0;
+                    },
+                    ret: superType.ret
+                }),
+            pos: Context.currentPos()
+        };
     }
 
     #end
+}
+
+private class SuperType {
+
+    public var typePath : TypePath;
+    public var args : Array<ComplexType>;
+    public var ret : Null<ComplexType>;
+
+    public function new() {
+        this.args = new Array();
+    }
 }
