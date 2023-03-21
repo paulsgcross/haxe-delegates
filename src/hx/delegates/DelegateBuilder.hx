@@ -219,6 +219,9 @@ final class DelegateBuilder {
         function mapper(expr : Expr) {
             switch expr.expr {
                 case EConst(CIdent(s)):
+                    if(s == 'trace')
+                        return expr.map(mapper);
+                    
                     if(scoped.local.exists(s)) {
                         return macro {$i{'_$s'}};
                     }

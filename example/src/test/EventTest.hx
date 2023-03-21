@@ -6,7 +6,7 @@ import hx.delegates.Delegate;
 // TODO: Composition?
 class EventTest {
 
-    public var delegate : Delegate<(Int, Int) -> Int>;
+    public var delegate : Delegate<(Int, Int) -> Void>;
 
     public function new() { }
 
