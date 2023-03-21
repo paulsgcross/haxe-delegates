@@ -9,17 +9,19 @@ import hx.delegates.DelegateBuilder;
 // TODO: Composition?
 class Test {
 
-    private var _outer : Int;
-
+    private var _delegate : Delegate<(Int, Int) -> Void>;
+    public var _outer : Int = 5;
     public function new() {
         var event = new EventTest();
-        _outer= 5;
         event.delegate = DelegateBuilder.from(myFunction);
         trace(event.delegate.call(3, 1));
         
-        // var g = 6;
-        // testDelegate = DelegateBuilder.from((a : Int, b : Int) -> (return (a+b+g) : Int));
-        // trace(testDelegate.call(0, 1));
+        _delegate = DelegateBuilder.from(myFunctionTest);
+        _delegate.call(4, 3);
+        
+        var g = 6;
+        event.delegate = DelegateBuilder.from((a : Int, b : Int) -> (return (a+b+g+_outer) : Int));
+        trace(event.delegate.call(3, 1));
         
         // testDelegate = DelegateBuilder.from(function(a : Int, b : Int) {
         //     return ((a+b) : Int);
@@ -82,7 +84,11 @@ class Test {
     // }
 
     inline public function myFunction(a : Int, b : Int) : Int {
-        return a + b + _outer;
+        return a + b;
+    }
+
+    inline public function myFunctionTest(a : Int, b : Int) : Void {
+        trace(a + b);
     }
 
     // public inline function myInlinedFunction(a : Int, b : Int) : Int {

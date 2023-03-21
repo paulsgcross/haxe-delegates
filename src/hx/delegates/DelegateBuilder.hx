@@ -67,7 +67,7 @@ final class DelegateBuilder {
         
         switch(funcType) {
             case Inline:
-                fields.push(createInlineCall(type));
+                fields.push(createInlineCall(type, func, scope));
             case Ident:
                 fields.push(createIdentCall(ident, type, func));
         }
@@ -197,31 +197,38 @@ final class DelegateBuilder {
     }
 
     private static function createIdentCall(ident : String, superType : SuperType, func : Function) : Field {
-        var index = 0;
-        var args = [for(arg in func.args) macro{$i{'arg${index++}'};}];
+        var args = [for(arg in func.args) macro{$i{arg.name};}];
         if(func.ret != null) {
-            return createCall(superType, macro {return _parent.$ident($a{args});});
-        } else return createCall(superType, macro {_parent.$ident($a{args});});
+            return createCall(superType, func.args, macro {return _parent.$ident($a{args});});
+        } else return createCall(superType, func.args, macro {_parent.$ident($a{args});});
     }
 
-    private static function createInlineCall(superType : SuperType) : Field {
-        return createCall(superType, macro {return 0;});
+    private static function createInlineCall(superType : SuperType, func : Function, scoped : ScopedVariables) : Field {
+        function mapper(expr : Expr) {
+            switch expr.expr {
+                case EConst(CIdent(s)):
+                    if(scoped.local.exists(s)) {
+                        return macro {$i{'_$s'}};
+                    }
+
+                    if(scoped.outer.contains(s)) {
+                        return macro {_parent.$s;};
+                    }
+                default:
+                    return expr.map(mapper);
+            }
+            return expr;
+        };
+        
+        return createCall(superType, func.args, func.expr.map(mapper));
     }
 
-    private static function createCall(superType : SuperType, innerExpr : Expr) : Field {
-        var index = 0;
-        var argName = 'arg';
-
-        var funcArg = [];
-        for(arg in superType.args) {
-            funcArg.push({name: '$argName${index++}', type: arg});
-        }
-
+    private static function createCall(superType : SuperType, args : Array<FunctionArg>, innerExpr : Expr) : Field {
         return {
             name: 'call',
                 access: [APublic],
                 kind: FFun({
-                    args: funcArg,
+                    args: args,
                     expr: innerExpr,
                     ret: superType.ret
                 }),
