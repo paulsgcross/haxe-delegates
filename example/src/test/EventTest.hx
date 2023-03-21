@@ -1,3 +1,5 @@
+package test;
+
 import hx.delegates.Delegate;
 
 // TODO: Allow for returning wrapped types

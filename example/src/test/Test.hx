@@ -1,3 +1,5 @@
+package test;
+
 import sys.thread.EventLoop;
 import hx.delegates.Ref;
 import haxe.ds.Vector;
@@ -10,7 +12,7 @@ import hx.delegates.DelegateBuilder;
 class Test {
 
     private var _delegate : Delegate<(Int, Int) -> Void>;
-    public var _outer : Int = 5;
+    private var _outer : Int = 5;
     public function new() {
         var event = new EventTest();
         event.delegate = DelegateBuilder.from(myFunction);
@@ -83,11 +85,11 @@ class Test {
     //     trace('Function type with ref: ' + (Timer.stamp() - t));
     // }
 
-    inline public function myFunction(a : Int, b : Int) : Int {
+    inline private function myFunction(a : Int, b : Int) : Int {
         return a + b;
     }
 
-    inline public function myFunctionTest(a : Int, b : Int) : Void {
+    inline private function myFunctionTest(a : Int, b : Int) : Void {
         trace(a + b);
     }
 

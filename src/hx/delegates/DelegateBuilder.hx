@@ -81,18 +81,30 @@ final class DelegateBuilder {
         var module = Context.getLocalModule();
         var packageName = 'delegates';
         var className = 'Delegate_${name}';
+        var typePath = module.toLowerCase().split('.');
+        typePath.insert(0, packageName);
         try {
             Context.getType('${packageName}.${module.toLowerCase()}.${className}');
         } catch (e : Dynamic) {
             Context.defineType({
                 pos: Context.currentPos(),
-                pack: [packageName, module.toLowerCase()],
+                pack: typePath,
                 name: className,
                 kind: TDClass(superPath.typePath, null, false, true, false),
-                fields: fields
+                fields: fields,
+                meta: [{name:':access', params: [convertToEField(module)], pos: Context.currentPos()}]
             });
         }
-        return {pack: [packageName, module.toLowerCase()], name: className};
+        return {pack: typePath, name: className};
+    }
+
+    private static function convertToEField(path : String) : Expr {
+        var patharray = path.split('.');
+        var current = {pos: Context.currentPos(), expr: EConst(CIdent(patharray[0]))};
+        for(i in 1...patharray.length) {
+            current = {pos: Context.currentPos(), expr: EField(current, patharray[i])};
+        }
+        return current;
     }
 
     private static function resolveSuperType(func : Function) : SuperType {
@@ -226,12 +238,12 @@ final class DelegateBuilder {
     private static function createCall(superType : SuperType, args : Array<FunctionArg>, innerExpr : Expr) : Field {
         return {
             name: 'call',
-                access: [APublic],
-                kind: FFun({
-                    args: args,
-                    expr: innerExpr,
-                    ret: superType.ret
-                }),
+            access: [APublic],
+            kind: FFun({
+                args: args,
+                expr: innerExpr,
+                ret: superType.ret
+            }),
             pos: Context.currentPos()
         };
     }
