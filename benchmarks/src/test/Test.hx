@@ -1,5 +1,6 @@
 package test;
 
+import hx.delegates.Ref;
 import hx.delegates.Delegate;
 import hx.delegates.DelegateBuilder;
 import haxe.Timer;
@@ -10,6 +11,8 @@ class Test {
     private var testDelegate : Delegate<(Int, Int) -> Int>;
     private var testFunc : (Int, Int) -> Int;
 
+    private var testDelegates : Delegate<(Array<Int>, Array<Int>) -> Int>;
+    
     public function new() { }
 
     public function runEvent() {
@@ -33,11 +36,30 @@ class Test {
     }
 
     public function runAnon() {
-        trace('*** Running with inlines ***');
+        trace('*** Running with anonymous functions ***');
         var v = 5;
         testFunc = (a, b) -> (return a+b+outer+v);
+
         testDelegate = DelegateBuilder.from((a : Int, b : Int) -> (return a+b+outer+v : Int));
+        
         doTest();
+    }
+
+    public function runCapture() {
+        trace('*** Running scope capture ***');
+        var t = Timer.stamp();
+        var v = 5;
+        var func = () -> (v = 7);
+        func();
+        trace(v);
+        trace('Scope capture: ' + (Timer.stamp() - t));
+
+        var t = Timer.stamp();
+        var v = new Ref<Int>(5);
+        var delegate : Delegate<Void->Void> = DelegateBuilder.from(() -> (v.value = 7));
+        delegate.call();
+        trace(v.value);
+        trace('Delegate capture: ' + (Timer.stamp() - t));
     }
 
     public function myFunction(a : Int, b : Int) : Int {
@@ -62,4 +84,8 @@ class Test {
         }
         trace('Delegate: ' + (Timer.stamp() - t));
     }
+}
+
+class MyObject {
+    public function new() {}
 }

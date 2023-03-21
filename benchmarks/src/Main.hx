@@ -6,5 +6,6 @@ class Main {
         test.runInlined();
         test.runAnon();
         test.runEvent();
+        test.runCapture();
     }
 }
