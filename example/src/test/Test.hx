@@ -14,7 +14,7 @@ class Test {
 
     public function runEvent() {
         var test = new EventTest();
-        test.delegate = DelegateBuilder.from((a : Int, b : Int) -> (trace(a+b) : Void));
+        test.delegate = DelegateBuilder.from((a : Int, b : Int) -> (trace(a+b)));
         test.delegate.call(4, 5);
     }
 
@@ -49,7 +49,7 @@ class Test {
     }
 
     public function doTest() {
-        var N = 50000000;
+        var N = 1000000;
         var t = Timer.stamp();
         for(i in 0...N) {
             testFunc(i, i);

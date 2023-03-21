@@ -145,8 +145,9 @@ final class DelegateBuilder {
         var out = new Out();
         ExpressionSearch.search(expr, 'ECheckType', out);
 
-        if(out.exprs.length <= 0)
-            return null;
+        if(out.exprs.length <= 0) {
+            return ComplexType.TPath({pack: [], name: 'Void'});
+        }
 
         switch(out.exprs[0].expr) {
             case ECheckType(e, t):
@@ -221,7 +222,7 @@ final class DelegateBuilder {
                 case EConst(CIdent(s)):
                     if(s == 'trace')
                         return expr.map(mapper);
-                    
+
                     if(scoped.local.exists(s)) {
                         return macro {$i{'_$s'}};
                     }
