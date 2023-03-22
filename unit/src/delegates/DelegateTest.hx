@@ -62,9 +62,9 @@ final class DelegateTest extends utest.Test {
     public function testArraySum() {
         delegateArrays = DelegateBuilder.from((array : Array<Int>) -> {
             var result = 0;
-            //for(i in array) {
-             //   result += i;
-            //}
+            for(i in array) {
+                result += i;
+            }
             return (result : Int);
         });
 

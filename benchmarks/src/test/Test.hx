@@ -16,8 +16,7 @@ class Test {
     public function runEvent() {
         var test = new EventTest();
         test.delegate = DelegateBuilder.from((a : Int, b : Int) -> {
-            var x = 3;
-            trace(a+b+x);
+            trace(a+b);
         });
         test.delegate.call(4, 5);
     }
