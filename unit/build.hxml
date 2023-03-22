@@ -1,0 +1,7 @@
+-cp src
+-cpp bin
+-main Main
+-lib utest
+-lib haxe-delegates
+-lib hxcpp-debug-server
+-debug

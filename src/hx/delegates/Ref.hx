@@ -1,6 +1,6 @@
 package hx.delegates;
 
-@:generic class Ref<T> {
+@:generic final class Ref<T> {
     
     public var value : T;
 

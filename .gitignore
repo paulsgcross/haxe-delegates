@@ -1,2 +1,4 @@
-example/bin/
+benchmarks/bin/
 .vscode/
+.unittest/
+*.code-workspace

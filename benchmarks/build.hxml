@@ -1,0 +1,15 @@
+--cpp bin/cpp
+--class-path src
+--main Main
+
+--library haxe-delegates
+--library hxcpp-debug-server
+
+# --next
+
+# --js bin/js/app.js
+# --class-path src
+# --main Main
+
+# --library haxe-delegates
+# --library hxcpp-debug-server
