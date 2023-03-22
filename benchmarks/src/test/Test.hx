@@ -10,14 +10,14 @@ class Test {
     private var outer : Int = 5;
     private var testDelegate : Delegate<(Int, Int) -> Int>;
     private var testFunc : (Int, Int) -> Int;
-
-    private var testDelegates : Delegate<(Array<Int>, Array<Int>) -> Int>;
     
     public function new() { }
-
+    
     public function runEvent() {
         var test = new EventTest();
-        test.delegate = DelegateBuilder.from((a : Int, b : Int) -> (trace(a+b)));
+        test.delegate = DelegateBuilder.from((a : Int, b : Int) -> {
+            trace(a+b);
+        });
         test.delegate.call(4, 5);
     }
 
@@ -60,6 +60,10 @@ class Test {
         delegate.call();
         trace(v.value);
         trace('Delegate capture: ' + (Timer.stamp() - t));
+    }
+
+    public function testArrayFunc(arr : Array<Int>) : Int {
+        return 0;
     }
 
     public function myFunction(a : Int, b : Int) : Int {

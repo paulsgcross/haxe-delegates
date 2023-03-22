@@ -115,6 +115,12 @@ final class ExpressionSearch {
                         search(param, target, out);
                     }
                 } else out.exprs.push(expr);
+            case EVars(vars):
+                if(!doCheck(def, target)) {
+                    for(v in vars) {
+                        search(v.expr, target, out);
+                    }
+                } else out.exprs.push(expr);
             default:
                 Context.error('Delegates return expression must be unified with the desired return type', Context.currentPos());
         }

@@ -1,5 +1,6 @@
 package hx.delegates;
 
+import sys.net.UdpSocket;
 #if macro
 import haxe.macro.Expr.ComplexType;
 import haxe.macro.Expr.TypePath;
@@ -109,28 +110,50 @@ final class DelegateBuilder {
 
     private static function resolveSuperType(func : Function) : SuperType {
         var superType = new SuperType();
-        
+
         var name = '';
         for(arg in func.args) {
-            name += '${getTypeName(arg.type)}_';
+            name += '${getTypeNames(arg.type)}_';
             superType.args.push(arg.type);
         }
 
         if(func.ret == null) {
             var type = findReturnType(func.expr);
-            name += getTypeName(type);
+            name += getTypeNames(type);
             superType.ret = type;
         } else {
-            name += getTypeName(func.ret);
+            name += getTypeNames(func.ret);
             superType.ret = func.ret;
         }
 
         superType.typePath = {pack: ['delegates'], name: 'Delegate_${name}'};
 
+
         return superType;
     }
 
-    private static function getTypeName(type : ComplexType) : String {
+    // TODO: Fix this up, we are not finding the correct super type...
+    private static function getTypeNames(type : ComplexType) : String {
+        var result = '';
+        switch(type) {
+            case TPath(p):
+                var ps = p.params==null?[]:p.params;
+                if(ps.length > 0) {
+                    result += '${resolveName(type)}_';
+                    for(param in p.params) {
+                        switch(param) {
+                           case TPType(t):
+                                result += '${resolveName(t)}';
+                            default:
+                        }
+                    }
+                } else result = resolveName(type);
+            default:
+        }
+        return result;
+    }
+
+    private static function resolveName(type : ComplexType) : String {
         switch(type) {
             case TPath(p):
                 if (p.name == 'StdTypes') {
@@ -144,7 +167,6 @@ final class DelegateBuilder {
     private static function findReturnType(expr : Expr) : ComplexType {
         var out = new Out();
         ExpressionSearch.search(expr, 'ECheckType', out);
-
         if(out.exprs.length <= 0) {
             return ComplexType.TPath({pack: [], name: 'Void'});
         }
@@ -259,16 +281,29 @@ final class DelegateBuilder {
     }
 
     private static function handleVaribleScope(func : Function) : ScopedVariables {
+        var localVars = Context.getLocalTVars();
+
         var scoped = new ScopedVariables();
 
         var out = new Out();
         ExpressionSearch.search(func.expr, 'EField', out);
         ExpressionSearch.search(func.expr, 'EConst', out);
+        ExpressionSearch.search(func.expr, 'EVars', out);
         
-        var localVars = Context.getLocalTVars();
+        var map = new Map();
+        for(arg in out.exprs) {
+            switch(arg.expr) {
+                case EVars(vars):
+                    map = [for(v in vars) v.name => v.name];
+                default: '';
+            }
+        };
+
+        trace(map);
+
         var inArgs = [for(arg in func.args) arg.name => arg];
         var funcArgs = [for(arg in out.exprs) switch(arg.expr) {
-            case EConst(CIdent(s)): s=='this'?'':s;
+            case EConst(CIdent(s)): s=='this' || map.exists(s) ?'':s;
             case EField(e, field): field;
             default: '';
         }];
@@ -284,6 +319,9 @@ final class DelegateBuilder {
                 scoped.local.set(unknown, localVars.get(unknown).t.toComplexType());
             else scoped.outer.push(unknown);
         }
+
+        trace(scoped.local);
+        trace(scoped.outer);
 
         return scoped;
     }

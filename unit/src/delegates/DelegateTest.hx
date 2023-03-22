@@ -60,16 +60,16 @@ final class DelegateTest extends utest.Test {
     }
 
     public function testArraySum() {
-        // delegateArrays = DelegateBuilder.from((arr : Array<Int>)-> {
-        //     var result = 0;
-        //     for(value in arr)
-        //         result += value;
-            
-        //     return (result : Int);
-        // });
+        delegateArrays = DelegateBuilder.from((array : Array<Int>) -> {
+            var result = 0;
+            //for(i in array) {
+             //   result += i;
+            //}
+            return (result : Int);
+        });
 
-        // var result = delegateArrays.call([1, 2, 3]);
+        var result = delegateArrays.call([1, 2, 3]);
         
-        Assert.fail();
+        Assert.equals(6, result);
     }
 }
