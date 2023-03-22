@@ -3,8 +3,18 @@ package hx.delegates.macros;
 import haxe.macro.Expr;
 import haxe.macro.Context;
 
+using haxe.macro.ExprTools;
+
 final class ExpressionSearch {
     
+    public static function mapper(expr : Expr, check : Expr -> Bool) : Void {
+        expr.map(function search(expr) {
+            if(check(expr))
+                return expr.map(search);
+            else return expr;
+        });
+    }
+
     public static function search(expr : Expr, target : String, out : Out) : Void {
         var def = expr.expr;
         if(def == null)

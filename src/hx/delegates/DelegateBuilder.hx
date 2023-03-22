@@ -249,7 +249,7 @@ final class DelegateBuilder {
                         return macro {$i{'_$s'}};
                     }
 
-                    if(scoped.outer.contains(s)) {
+                    if(scoped.outer.exists(s)) {
                         return macro {_parent.$s;};
                     }
                 default:
@@ -281,47 +281,12 @@ final class DelegateBuilder {
     }
 
     private static function handleVaribleScope(func : Function) : ScopedVariables {
-        var localVars = Context.getLocalTVars();
-
         var scoped = new ScopedVariables();
 
-        var out = new Out();
-        ExpressionSearch.search(func.expr, 'EField', out);
-        ExpressionSearch.search(func.expr, 'EConst', out);
-        ExpressionSearch.search(func.expr, 'EVars', out);
-        
-        var map = new Map();
-        for(arg in out.exprs) {
-            switch(arg.expr) {
-                case EVars(vars):
-                    map = [for(v in vars) v.name => v.name];
-                default: '';
-            }
-        };
-
-        trace(map);
-
-        var inArgs = [for(arg in func.args) arg.name => arg];
-        var funcArgs = [for(arg in out.exprs) switch(arg.expr) {
-            case EConst(CIdent(s)): s=='this' || map.exists(s) ?'':s;
-            case EField(e, field): field;
-            default: '';
-        }];
-
-        var unknowns = [];
-        for(funcArg in funcArgs) {
-            if(!inArgs.exists(funcArg) && funcArg != '')
-                unknowns.push(funcArg);
-        }
-
-        for(unknown in unknowns) {
-            if(localVars.exists(unknown))
-                scoped.local.set(unknown, localVars.get(unknown).t.toComplexType());
-            else scoped.outer.push(unknown);
-        }
-
-        trace(scoped.local);
-        trace(scoped.outer);
+        var localVars = Context.getLocalTVars();
+        var outerVars = Context.getLocalClass().get().fields.get();
+        [for(outer in outerVars) scoped.outer.set(outer.name, outer.name)];
+        [for(v in localVars) scoped.local.set(v.name, v.t.toComplexType())];
 
         return scoped;
     }
@@ -333,11 +298,11 @@ final class DelegateBuilder {
 private class ScopedVariables {
 
     public var local : Map<String, ComplexType>;
-    public var outer : Array<String>;
+    public var outer : Map<String, String>;
 
     public function new() {
         this.local = new Map();
-        this.outer = new Array();
+        this.outer = new Map();
     }
 }
 
