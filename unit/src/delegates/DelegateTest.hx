@@ -72,4 +72,31 @@ final class DelegateTest extends utest.Test {
         
         Assert.equals(6, result);
     }
+
+    public function testStaticRef() {
+        var delegate = DelegateBuilder.from(() -> {
+            return (TestClass.TestValue : Int);
+        });
+
+        Assert.equals(5, delegate.call());
+    }
+
+    public function testLocal() {
+        var delegate : Delegate<Void->Int> = DelegateBuilder.from(() -> {
+            return (8 : Int);
+        });
+
+        Assert.equals(8, delegate.call());
+    }
+
+    public function testIdentity() {
+        var delegate : Delegate<Int->Int> = DelegateBuilder.from(identity);
+
+        Assert.equals(7, delegate.call(3));
+    }
+
+    @:ignore function identity(i : Int) : Int {
+        return 4 + i;
+    }
+    
 }

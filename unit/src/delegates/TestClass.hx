@@ -8,4 +8,5 @@ final class TestClass {
 
     public function new() { }
 
+    public static var TestValue : Int = 5;
 }
