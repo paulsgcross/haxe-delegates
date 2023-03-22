@@ -9,7 +9,9 @@ import haxe.macro.Expr.ComplexType;
 using haxe.macro.TypeTools;
 using haxe.macro.ComplexTypeTools;
 
-final class Macro {
+using StringTools;
+
+final class DelegateMacro {
 
     private static var _delegateCount : Int = 0;
 
@@ -33,9 +35,17 @@ final class Macro {
         for(type in types) {
             switch(type) {
                 case TAbstract(t, params):
-                    names.push(t.toString());
+                    names.push(t.toString().replace('.', ''));
+                    for(param in params)
+                        names.push(param.toString().replace('.', ''));
                 case TInst(t, params):
-                    names.push(t.get().name);
+                    names.push(t.get().name.replace('.', ''));
+                    for(param in params)
+                        names.push(param.toString().replace('.', ''));
+                case TEnum(t, params):
+                    names.push(t.get().name.replace('.', ''));
+                    for(param in params)
+                        names.push(param.toString().replace('.', ''));
                 default:
             }
         }
@@ -69,28 +79,6 @@ final class Macro {
         
         var fields : Array<Field> = [];
 
-        var ptype = Context.getType(module);
-        fields.push({
-              name: '_parent',
-              access: [APrivate],
-              kind: FVar(ptype.toComplexType(), null),
-              pos: pos
-        });
-
-        fields.push({
-            name: 'new',
-            access: [APublic],
-            kind: FFun({
-                args: [{name: 'parent', type: ptype.toComplexType()}],
-                expr: macro {
-                    _parent = parent;
-                },
-                ret: null
-            }),
-            pos: pos
-        });
-        
-        trace(types);
         fields.push({
             name: 'call',
             access: [APublic, AAbstract],
