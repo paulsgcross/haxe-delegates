@@ -1,0 +1,20 @@
+name: CI
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.2.5
+      
+      - run: haxelib install utest
+      
+      - name: Run tests
+        working-directory: ./unit
+        run: haxe test.hxml
