@@ -93,7 +93,7 @@ final class DelegateBuilder {
                 name: className,
                 kind: TDClass(superPath.typePath, null, false, true, false),
                 fields: fields,
-                meta: [{name:':access', params: [macro {$p{module.split('.')};}], pos: Context.currentPos()}]
+                meta: [{name:':access', params: [macro $p{module.split('.')}], pos: Context.currentPos()}]
             });
         }
         return {pack: typePath, name: className};
