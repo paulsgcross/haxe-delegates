@@ -206,14 +206,14 @@ final class DelegateBuilder {
         var exprs = [];
         var outVars = [];
         args.push({name: 'parent', type: callerType});
-        exprs.push(macro{ $i{'_parent'} = $i{'parent'}; });
+        exprs.push(macro $i{'_parent'} = $i{'parent'});
 
         for(entry in scope.local.keyValueIterator()) {
             var name = entry.key;
             var type = entry.value;
             args.push({name: name, type: type});
 
-            exprs.push(macro{ $i{'_$name'} = $i{name}; });
+            exprs.push(macro $i{'_$name'} = $i{name});
 
             outVars.push(name);
         }
@@ -223,7 +223,7 @@ final class DelegateBuilder {
                 access: [APublic],
                 kind: FFun({
                     args: args,
-                    expr: macro {$b{exprs}}
+                    expr: macro $b{exprs}
                 }),
             pos: Context.currentPos()
         });
@@ -232,10 +232,10 @@ final class DelegateBuilder {
     }
 
     private static function createIdentCall(ident : String, superType : SuperType, func : Function) : Field {
-        var args = [for(arg in func.args) macro{$i{arg.name};}];
+        var args = [for(arg in func.args) macro $i{arg.name}];
         if(func.ret != null) {
-            return createCall(superType, func.args, macro {return _parent.$ident($a{args});});
-        } else return createCall(superType, func.args, macro {_parent.$ident($a{args});});
+            return createCall(superType, func.args, macro return _parent.$ident($a{args}));
+        } else return createCall(superType, func.args, macro _parent.$ident($a{args}));
     }
 
     private static function createInlineCall(superType : SuperType, func : Function, scoped : ScopedVariables) : Field {
@@ -246,11 +246,11 @@ final class DelegateBuilder {
                         return expr.map(mapper);
 
                     if(scoped.local.exists(s)) {
-                        return macro {$i{'_$s'}};
+                        return macro $i{'_$s'};
                     }
 
                     if(scoped.outer.exists(s)) {
-                        return macro {_parent.$s;};
+                        return macro _parent.$s;
                     }
                 default:
                     return expr.map(mapper);
@@ -275,9 +275,9 @@ final class DelegateBuilder {
     }
 
     private static function createInstantiation(typePath : TypePath, inVars : Array<String>) : Expr {
-        var exprs = [for(name in inVars) macro {$i{name}}];
-        exprs.insert(0, macro {this;});
-        return macro {new $typePath($a{exprs});};
+        var exprs = [for(name in inVars) macro $i{name}];
+        exprs.insert(0, macro this);
+        return macro new $typePath($a{exprs});
     }
 
     private static function handleVaribleScope(func : Function) : ScopedVariables {
